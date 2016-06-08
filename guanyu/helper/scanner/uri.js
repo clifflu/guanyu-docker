@@ -1,0 +1,141 @@
+"use strict";
+
+var file_max_size = require('../../config').file_max_size
+
+var extend = require('extend')
+  , fs = require('fs')
+  , Promise = require('promise')
+  , request = require('request')
+  , tmp = require('tmp')
+  , url = require('url')
+
+
+var file_scanner = require('./file.js')
+  , logger = require('../logger')
+  , mycache = require('../cache')
+  , myhash = require("../hash")
+
+
+var host_whitelist = [
+  '104.com.tw',
+  'asu5.com',
+  'asus.com',
+  'facebook.com',
+  'flickr.com',
+  'ford.com.tw',
+  'imgur.com',
+  'linkedin.com',
+  'microsoft.com',
+  'nhri.org.tw',
+  'picasaweb.google.com',
+  'photos.google.com',
+  'play.google.com',
+  'piterest.com',
+  'photo.xuite.net',
+  'vimeo.com',
+  'wretch.cc',
+  'www.kimo.com.tw',
+  'yahoo.com',
+  'youtu.be',
+  'youtube.com'
+];
+
+
+function shortcut_host_whitelist(payload) {
+  var uri = url.parse(payload.resource);
+
+  for (let idx = 0, len = host_whitelist.length; idx < len; idx++) {
+    let host = host_whitelist[idx];
+    if (uri.host.endsWith(host)) {
+      logger.info(`Whitelisted host "${host}" in "${payload.resource}"`);
+      payload = extend(payload, {
+        malicious: false,
+        result: `whitelisted (${host})`
+      });
+      return Promise.resolve(payload)
+    }
+  }
+
+  return Promise.resolve(payload);
+}
+
+function fetch_uri(payload) {
+  if (payload.result || !payload.resource) {
+    logger.info("Skip fetching uri for result found")
+    return Promise.resolve(payload);
+  }
+
+  return new Promise((fulfill, reject) => {
+
+    var name = tmp.tmpNameSync({ template: '/tmp/guanyu-XXXXXXXX' });
+    logger.info(`Fetching "${payload.resource}" to "${name}"`);
+
+    request({method: "HEAD", url: payload.resource}, (err, headRes) => {
+      var size = headRes.headers['content-length'];
+      if (size > file_max_size) {
+        payload = extend(payload, {
+          message: "Resource too large",
+          status: 413,
+          stack: `Resource size "${size}" exceeds limit "${file_max_size}"`
+        });
+        return reject(payload);
+      }
+
+      var fetched_size = 0,
+          res = request({url: payload.resource});
+
+      res
+        .on('data', (data) => {
+          fetched_size += data.length;
+          if (fetched_size > file_max_size) {
+            res.abort();
+            fs.unlink(name);
+            payload = extend(payload, {
+              message: "Resource too large",
+              status: 413,
+              stack: `Fetched size "${fetched_size}" exceeds limit "${file_max_size}"`
+            });
+            return reject(payload)
+          }
+        })
+        .pipe(fs.createWriteStream(name))
+        .on('finish', () => {
+          payload.filename = name;
+          logger.info(`Saved locally ${payload.filename}`)
+          fulfill(payload);
+        })
+        .on('error', (err) => {
+          payload.error = err;
+          reject(payload) ;
+        });
+    });
+  });
+}
+
+function hook(payload) {
+  logger.warn("Hook");
+  logger.warn(payload);
+  return Promise.resolve(payload);
+}
+
+/**
+ *
+ * @param uri
+ * @returns {*}
+ */
+function scan_uri(uri) {
+  logger.info(`Scan uri "${uri}"`);
+  return new Promise((fulfill, reject) => {
+    myhash.from_string(uri)
+      .then(shortcut_host_whitelist)
+      .then(mycache.get_result)
+      .then(fetch_uri)
+      .then(file_scanner.call_sav_scan)
+      .then(mycache.update_result)
+      .then(fulfill, reject);
+  });
+}
+
+module.exports = {
+  scan_uri: scan_uri
+};

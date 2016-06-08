@@ -1,0 +1,35 @@
+extends layout
+
+block content
+    h1 Scan Text
+
+    p.
+        Guanyu scans for links (url) in #[code text], #[code x-www-form-urlencoded], fetches and scan with scan/uri,
+        and respond with json document in similar format.
+
+
+    h2 Sample Input
+
+    h3 cURL
+
+    code curl -X POST -d "text=#[em [TEXT]]" "#[em [Guanyu URI]]"
+    p eg. curl -X POST -d "text=aaaaaaaa http://home.clifflu.net/" http://localhost:3000/scan/text"
+
+
+    h2 Sample Output
+
+    code
+        pre.
+            {
+              "resource": [
+                "https://home.clifflu.net/asdf",
+                "http://www.kimo.com.tw"
+              ],
+              "malicious": false,
+              "scanned": "2016-06-07T10:29:27.413Z",
+              "hash": "text::1QBK4GRnSJijbPgdyaZWUIJ8M6S0pdFscp5qxb+fp2s=",
+              "results": {
+                "https://home.clifflu.net/asdf": "clean",
+                "http://www.kimo.com.tw": "whitelisted (www.kimo.com.tw)"
+              }
+            }

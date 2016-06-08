@@ -1,0 +1,28 @@
+extends layout
+
+block content
+    h1 Scan File
+
+    p.
+        Guanyu scans #[code file], a file uploaded in #[code multipart/form-data],
+        and respond with json document.
+
+
+    h2 Sample Input
+
+    h3 cURL
+
+    code curl -X POST -F "file=@#[em [File Path]]" "#[em [Guanyu URL]]"
+    p eg. curl -X POST -F "file=@/tmp/virus.exe" http://localhost:3000/scan/file"
+
+
+    h2 Sample Output
+
+    code
+        pre.
+            {
+                "malicious": false,
+                "scanned": "2016-06-07T02:44:07.309Z",
+                "hash":"file:d4yK7og3//GwHp0BEl1igMivD2Uk4AxHv1XAhkjpwug=",
+                "result": "clean"
+            }
