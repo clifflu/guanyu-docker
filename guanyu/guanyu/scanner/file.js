@@ -2,7 +2,8 @@
 
 var sav_max_seats = require('../../config').sav_max_seats
 
-var exec = require('child_process').exec
+var assert = require('assert')
+  , exec = require('child_process').exec
   , extend = require('extend')
   , fs = require('fs')
   , Promise = require('promise')
@@ -55,10 +56,15 @@ function call_sav_scan(payload) {
         }
 
         if (match = stdout.match(ptrn)) {
+          assert (err.code == 3);
           payload.malicious = true;
           payload.result = match[1]
         } else if (stderr == '' && !err) {
-          payload.result = "clean"
+          // No output and return 0 if negative
+          payload.result = "clean";
+        } else if (err && err.code == 2){
+          // Encrypted file that savscan can't decrypt
+          payload.result = "clean";
         } else {
           logger.warn(`File scanner failed with stdout: "${stdout}" and stderr: "${stderr}"`);
           logger.warn(err);
