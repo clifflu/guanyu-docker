@@ -47,7 +47,7 @@ function shortcut_host_whitelist(payload) {
   for (let idx = 0, len = host_whitelist.length; idx < len; idx++) {
     let host = host_whitelist[idx];
     if (uri.host.endsWith(host)) {
-      logger.info(`Whitelisted host "${host}" in "${payload.resource}"`);
+      logger.debug(`Whitelisted host "${host}" in "${payload.resource}"`);
       payload = extend(payload, {
         malicious: false,
         result: `whitelisted (${host})`
@@ -61,14 +61,14 @@ function shortcut_host_whitelist(payload) {
 
 function fetch_uri(payload) {
   if (payload.result || !payload.resource) {
-    logger.info("Skip fetching uri for result found")
+    logger.debug("Skip fetching uri for result found")
     return Promise.resolve(payload);
   }
 
   return new Promise((fulfill, reject) => {
 
     var name = tmp.tmpNameSync({ template: '/tmp/guanyu-XXXXXXXX' });
-    logger.info(`Fetching "${payload.resource}" to "${name}"`);
+    logger.debug(`Fetching "${payload.resource}" to "${name}"`);
 
     request({method: "HEAD", url: payload.resource}, (err, headRes) => {
       var size = headRes.headers['content-length'];
@@ -101,7 +101,7 @@ function fetch_uri(payload) {
         .pipe(fs.createWriteStream(name))
         .on('finish', () => {
           payload.filename = name;
-          logger.info(`Saved locally ${payload.filename}`)
+          logger.debug(`Saved locally ${payload.filename}`)
           fulfill(payload);
         })
         .on('error', (err) => {
@@ -112,19 +112,13 @@ function fetch_uri(payload) {
   });
 }
 
-function hook(payload) {
-  logger.warn("Hook");
-  logger.warn(payload);
-  return Promise.resolve(payload);
-}
-
 /**
  *
  * @param uri
  * @returns {*}
  */
 function scan_uri(uri) {
-  logger.info(`Scan uri "${uri}"`);
+  logger.debug(`Scan uri "${uri}"`);
   return new Promise((fulfill, reject) => {
     myhash.from_string(uri)
       .then(shortcut_host_whitelist)

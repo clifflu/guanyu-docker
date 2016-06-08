@@ -19,7 +19,7 @@ function from_string(string) {
 
     shasum.update(string);
     reply.hash = "text::" + shasum.digest('base64');
-    logger.info(`Hash from text "${reply.hash}"`);
+    logger.debug(`Hash from text "${reply.hash}"`);
     fulfill(reply)
   });
 }
@@ -33,14 +33,14 @@ function from_filename(filename) {
         scanned: new Date().toISOString(),
       };
 
-  logger.info(`Creating hash from ${filename}`);
+  logger.debug(`Creating hash from ${filename}`);
 
   return new Promise((fulfill, reject) => {
     try {
       s.on('data', (d) => { shasum.update(d) });
       s.on('end', () => {
         reply.hash = "file::" + shasum.digest('base64');
-        logger.info(`${reply.filename} hashed to "${reply.hash}"`);
+        logger.debug(`${reply.filename} hashed to "${reply.hash}"`);
         fulfill(reply)
       });
     } catch (ex) {

@@ -6,8 +6,8 @@ var router = require('express').Router(),
     upload = require('multer')({limits: {fileSize: file_max_size}, dest: '/tmp/'}),
     fs = require('fs');
 
-var scanner = require('../helper/scanner.js'),
-    logger = require('../helper/logger.js');
+var scanner = require('../guanyu/scanner.js'),
+    logger = require('../guanyu/logger.js');
 
 
 router.get('/', (req, res) => {

@@ -2,7 +2,8 @@
 
 var sav_max_seats = require('../../config').sav_max_seats
 
-var exec = require('child_process').exec
+var assert = require('assert')
+  , exec = require('child_process').exec
   , extend = require('extend')
   , fs = require('fs')
   , Promise = require('promise')
@@ -36,18 +37,18 @@ function call_sav_scan(payload) {
 
 
   if (payload.result || !payload.filename) {
-    logger.info("Skip sav scan for result or !filename");
+    logger.debug("Skip sav scan for result or !filename");
     return Promise.resolve(payload);
   }
 
-  logger.info(`Scanning (sophos) ${payload.filename}`);
+  logger.debug(`Scanning (sophos) ${payload.filename}`);
 
   return new Promise((fulfill, reject) => {
     sem.take(() => {
       exec(`${sav} ${sav_opt} "${payload.filename}"`, {timeout: 30000}, (err, stdout, stderr) => {
         sem.leave();
 
-        logger.info(`Deleting "${payload.filename}"`);
+        logger.debug(`Deleting "${payload.filename}"`);
         try {
           fs.unlink(payload.filename);
         } catch (ex) {
@@ -55,17 +56,24 @@ function call_sav_scan(payload) {
         }
 
         if (match = stdout.match(ptrn)) {
+          assert (err.code == 3);
           payload.malicious = true;
           payload.result = match[1]
-        } else if (stdout == '' && stderr == '') {
-          payload.result = "clean"
+        } else if (stderr == '' && !err) {
+          // No output and return 0 if negative
+          payload.result = "clean";
+        } else if (err && err.code == 2){
+          // Encrypted file that savscan can't decrypt
+          payload.result = "clean";
         } else {
-          payload.error = stderr;
+          logger.warn(`File scanner failed with stdout: "${stdout}" and stderr: "${stderr}"`);
+          logger.warn(err);
+          payload.error = stderr || stdout;
           payload.status = 500;
           reject(payload);
           return
         }
-        logger.info(`Scan result for ${payload.filename}: ${payload.malicious}`);
+        logger.debug(`Scan result for ${payload.filename}: ${payload.malicious}`);
         delete payload.filename;
         fulfill(payload);
       });
