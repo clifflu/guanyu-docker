@@ -112,12 +112,6 @@ function fetch_uri(payload) {
   });
 }
 
-function hook(payload) {
-  logger.warn("Hook");
-  logger.warn(payload);
-  return Promise.resolve(payload);
-}
-
 /**
  *
  * @param uri
