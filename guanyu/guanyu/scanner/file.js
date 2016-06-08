@@ -36,18 +36,18 @@ function call_sav_scan(payload) {
 
 
   if (payload.result || !payload.filename) {
-    logger.info("Skip sav scan for result or !filename");
+    logger.debug("Skip sav scan for result or !filename");
     return Promise.resolve(payload);
   }
 
-  logger.info(`Scanning (sophos) ${payload.filename}`);
+  logger.debug(`Scanning (sophos) ${payload.filename}`);
 
   return new Promise((fulfill, reject) => {
     sem.take(() => {
       exec(`${sav} ${sav_opt} "${payload.filename}"`, {timeout: 30000}, (err, stdout, stderr) => {
         sem.leave();
 
-        logger.info(`Deleting "${payload.filename}"`);
+        logger.debug(`Deleting "${payload.filename}"`);
         try {
           fs.unlink(payload.filename);
         } catch (ex) {
@@ -67,7 +67,7 @@ function call_sav_scan(payload) {
           reject(payload);
           return
         }
-        logger.info(`Scan result for ${payload.filename}: ${payload.malicious}`);
+        logger.debug(`Scan result for ${payload.filename}: ${payload.malicious}`);
         delete payload.filename;
         fulfill(payload);
       });

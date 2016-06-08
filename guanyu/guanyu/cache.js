@@ -14,21 +14,21 @@ var naive_database = {};
  */
 function get_result(payload) {
   if (payload.result) {
-    logger.info(`Skip cache lookup for fulfilled already on "${payload.hash}"`);
+    logger.debug(`Skip cache lookup for fulfilled already on "${payload.hash}"`);
     return Promise.resolve(payload);
   }
 
-  logger.info(`Cache lookup on "${payload.hash}"`);
+  logger.debug(`Cache lookup on "${payload.hash}"`);
   return get_result_naive(payload);
 }
 
 function get_result_naive(payload) {
   if (naive_database[payload.hash]) {
-    logger.info(`Cache hit (naive) "${payload.hash}"`);
+    logger.debug(`Cache hit (naive) "${payload.hash}"`);
     return Promise.resolve(naive_database[payload.hash]);
   }
 
-  logger.info(`Cache miss for "${payload.hash}"`);
+  logger.debug(`Cache miss for "${payload.hash}"`);
   return Promise.resolve(payload);
 }
 
@@ -43,7 +43,7 @@ function update_result(payload) {
   }
 
   if (payload.hash) {
-    logger.info(`Updating cache for ${payload.hash}`);
+    logger.debug(`Updating cache for ${payload.hash}`);
     let cached_entry = extend({}, payload, {cached: true})
     naive_database[payload.hash] = cached_entry;
   }

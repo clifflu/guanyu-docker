@@ -14,7 +14,7 @@ var urlRegex = /((https?:\/\/(?:(?:[a-zA-Z0-9\$\-\_\.\+\!\*\'\(\)\,\;\?\&\=]|(?:
 
 function check_text(payload) {
   if (payload.result || !payload.resource) {
-    logger.info("Skip checking text");
+    logger.debug("Skip checking text");
     return Promise.resolve(payload);
   }
 
@@ -22,7 +22,7 @@ function check_text(payload) {
     let links = payload.resource.match(urlRegex)
       , scanner_promises = [];
 
-    logger.info(`Found links in text: ${links}`);
+    logger.debug(`Found links in text: ${links}`);
     payload.resource = links;
 
     for (let idx = 0, len = links.length; idx < len; idx++) {
@@ -41,7 +41,7 @@ function check_text(payload) {
         payload.malicious = payload.malicious || v.malicious;
         payload.results[v.resource] = v.result
       }
-      logger.info(`Text scan result: ${payload}`);
+      logger.debug(`Text scan result: ${payload}`);
       fulfill(payload);
     }, reject)
 
