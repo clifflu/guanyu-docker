@@ -57,10 +57,12 @@ function call_sav_scan(payload) {
         if (match = stdout.match(ptrn)) {
           payload.malicious = true;
           payload.result = match[1]
-        } else if (stdout == '' && stderr == '') {
+        } else if (stderr == '' && !err) {
           payload.result = "clean"
         } else {
-          payload.error = stderr;
+          logger.warn(`File scanner failed with stdout: "${stdout}" and stderr: "${stderr}"`);
+          logger.warn(err);
+          payload.error = stderr || stdout;
           payload.status = 500;
           reject(payload);
           return
