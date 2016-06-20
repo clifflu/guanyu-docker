@@ -10,6 +10,16 @@ block content
 
     h2 Sample Input
 
+    dl
+        dt Encoding
+        dd #[code application/x-www-form-urlencoded] or #[code application/json]
+
+        dt (text) text
+        dd Text that guanyu will collect links from.
+
+        dt (bool) ignore_read_cache
+        dd Disable read cache and force a re-scan.
+
     h3 cURL
 
     code curl -X POST -d "text=#[em [TEXT]]" "#[em [Guanyu URI]]"

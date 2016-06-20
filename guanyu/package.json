@@ -1,6 +1,6 @@
 {
   "name": "guanyu",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
     "start": "nodemon ./bin/www --exec babel-node"
@@ -20,6 +20,7 @@
     "multer": "^1.1.0",
     "nodemon": "^1.9.2",
     "promise": "^7.1.1",
+    "redis": "^2.6.2",
     "request": "^2.72.0",
     "semaphore": "^1.0.5",
     "serve-favicon": "~2.3.0",
