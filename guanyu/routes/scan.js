@@ -10,12 +10,19 @@ var router = require('express').Router();
 var upload = require('multer')({limits: {fileSize: file_max_size}, dest: '/tmp/'});
 
 
-var handle_err = (res, err) => {
+function handle_err(res, err) {
   logger.warn(err);
   res.status(err.status || 500).render("error", {
     message: err.message || "Oops, something bad happened.",
-    error: err});
-};
+    error: err
+  });
+}
+
+function collect_options(req) {
+  return {
+    ignore_read_cache: req.body.ignore_read_cache || false
+  };
+}
 
 router.get('/', (req, res) => {
   res.render('scan-usage');
@@ -26,7 +33,10 @@ router.get('/file', (req, res) => {
 });
 
 router.post('/file', upload.single('file'), (req, res) => {
-  scanner.scan_file(req.file.path).then(
+  scanner.scan_file(
+    req.file.path,
+    collect_options(req)
+  ).then(
     (result) => {
       logger.info(result);
       res.send(result);
@@ -41,8 +51,11 @@ router.get('/uri', (req, res) => {
 });
 
 router.post('/uri', (req, res) => {
-  var uri = req.body.uri;
-  scanner.scan_uri(uri).then(
+
+  scanner.scan_uri(
+    req.body.uri,
+    collect_options(req)
+  ).then(
     (result) => {
       logger.info(result);
       res.send(result);
@@ -57,8 +70,10 @@ router.get('/text', (req, res) => {
 });
 
 router.post('/text', (req, res) => {
-  var text = req.body.text;
-  scanner.scan_text(text).then(
+  scanner.scan_text(
+    req.body.text,
+    collect_options(req)
+  ).then(
     (result) => {
       logger.info(result);
       res.send(result);

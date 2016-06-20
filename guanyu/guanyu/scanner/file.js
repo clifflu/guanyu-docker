@@ -82,14 +82,11 @@ function call_sav_scan(payload) {
   })
 }
 
-function scan_file(filename) {
-  return new Promise((fulfill, reject) => {
-    myhash.from_filename(filename)
-      .then(mycache.get_result)
-      .then(call_sav_scan)
-      .then(mycache.update_result)
-      .then(fulfill, reject)
-  });
+function scan_file(filename, options) {
+  return myhash.from_filename(filename, options)
+    .then(mycache.get_result)
+    .then(call_sav_scan)
+    .then(mycache.update_result);
 }
 
 module.exports = {

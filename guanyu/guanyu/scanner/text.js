@@ -47,14 +47,11 @@ function check_text(payload) {
   });
 }
 
-function scan_text(text) {
-  return new Promise((fulfill, reject) => {
-    myhash.from_string(text)
-      .then(mycache.get_result)
-      .then(check_text)
-      .then(mycache.update_result)
-      .then(fulfill, reject);
-  });
+function scan_text(text, options) {
+  return myhash.from_string(text, options)
+    .then(mycache.get_result)
+    .then(check_text)
+    .then(mycache.update_result);
 }
 
 module.exports = {

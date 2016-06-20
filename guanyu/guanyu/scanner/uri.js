@@ -116,17 +116,13 @@ function fetch_uri(payload) {
  * @param uri
  * @returns {*}
  */
-function scan_uri(uri) {
-  logger.debug(`Scan uri "${uri}"`);
-  return new Promise((fulfill, reject) => {
-    myhash.from_string(uri)
-      .then(shortcut_host_whitelist)
-      .then(mycache.get_result)
-      .then(fetch_uri)
-      .then(file_scanner.call_sav_scan)
-      .then(mycache.update_result)
-      .then(fulfill, reject);
-  });
+function scan_uri(uri, options) {
+  return myhash.from_string(uri, options)
+    .then(shortcut_host_whitelist)
+    .then(mycache.get_result)
+    .then(fetch_uri)
+    .then(file_scanner.call_sav_scan)
+    .then(mycache.update_result);
 }
 
 module.exports = {
