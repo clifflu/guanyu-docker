@@ -13,11 +13,20 @@ block content
 
     h2 Sample Input
 
+    dl
+        dt Encoding
+        dd #[code multipart/form-data]
+
+        dt (blob) file
+        dd File to scan
+
+        dt (bool) ignore_read_cache
+        dd Disable read cache and force a re-scan.
+
     h3 cURL
 
     code curl -X POST -F "file=@#[em [File Path]]" "#[em [Guanyu URL]]"
     p eg. curl -X POST -F "file=@/tmp/virus.exe" http://localhost:3000/scan/file"
-
 
     h2 Sample Output
 

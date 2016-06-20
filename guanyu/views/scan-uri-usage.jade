@@ -7,8 +7,17 @@ block content
         Guanyu fetches from #[code uri], a uri passed in #[code x-www-form-urlencoded],
         scans it, and respond with json document.
 
-
     h2 Sample Input
+
+    dl
+        dt Encoding
+        dd #[code application/x-www-form-urlencoded] or #[code application/json]
+
+        dt (text) uri
+        dd Uri that Guanyu will download and scan.
+
+        dt (bool) ignore_read_cache
+        dd Disable read cache and force a re-scan.
 
     h3 cURL
 
