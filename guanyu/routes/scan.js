@@ -1,18 +1,14 @@
 "use strict";
 
+var fs = require('fs');
+
+var scanner = require('../guanyu/scanner.js');
+var logger = require('../guanyu/logger.js');
+
 var file_max_size = require('../config').file_max_size;
+var router = require('express').Router();
+var upload = require('multer')({limits: {fileSize: file_max_size}, dest: '/tmp/'});
 
-var router = require('express').Router(),
-    upload = require('multer')({limits: {fileSize: file_max_size}, dest: '/tmp/'}),
-    fs = require('fs');
-
-var scanner = require('../guanyu/scanner.js'),
-    logger = require('../guanyu/logger.js');
-
-
-router.get('/', (req, res) => {
-  res.render('scan-usage');
-});
 
 var handle_err = (res, err) => {
   logger.warn(err);
@@ -20,6 +16,10 @@ var handle_err = (res, err) => {
     message: err.message || "Oops, something bad happened.",
     error: err});
 };
+
+router.get('/', (req, res) => {
+  res.render('scan-usage');
+});
 
 router.get('/file', (req, res) => {
   res.render('scan-file-usage');

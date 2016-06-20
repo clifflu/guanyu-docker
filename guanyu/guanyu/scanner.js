@@ -1,4 +1,7 @@
 "use strict";
+/**
+ * Facade to scanner functions
+ */
 
 module.exports = {
   scan_file: require("./scanner/file").scan_file,

@@ -1,18 +1,19 @@
 "use strict";
 
-var sav_max_seats = require('../../config').sav_max_seats
 
-var assert = require('assert')
-  , exec = require('child_process').exec
-  , extend = require('extend')
-  , fs = require('fs')
-  , Promise = require('promise')
-  , sem = require('semaphore')(sav_max_seats)
+var assert = require('assert');
+var extend = require('extend');
+var fs = require('fs');
+var Promise = require('promise');
 
-var logger = require('../logger')
-  , mycache = require('../cache')
-  , myhash = require("../hash")
+var logger = require('../logger');
+var mycache = require('../cache');
+var myhash = require("../hash");
 
+var sav_max_seats = require('../../config').sav_max_seats;
+
+var exec = require('child_process').exec;
+var sem = require('semaphore')(sav_max_seats);
 
 
 /**
@@ -56,13 +57,13 @@ function call_sav_scan(payload) {
         }
 
         if (match = stdout.match(ptrn)) {
-          assert (err.code == 3);
+          assert(err.code == 3);
           payload.malicious = true;
           payload.result = match[1]
         } else if (stderr == '' && !err) {
           // No output and return 0 if negative
           payload.result = "clean";
-        } else if (err && err.code == 2){
+        } else if (err && err.code == 2) {
           // Encrypted file that savscan can't decrypt
           payload.result = "clean";
         } else {

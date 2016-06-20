@@ -1,7 +1,7 @@
 "use strict";
 
-var extend = require('extend')
-  , Promise = require('promise')
+var extend = require('extend');
+var Promise = require('promise');
 
 var logger = require('./logger');
 

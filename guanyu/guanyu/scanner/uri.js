@@ -1,19 +1,18 @@
 "use strict";
 
-var file_max_size = require('../../config').file_max_size
+var extend = require('extend');
+var fs = require('fs');
+var Promise = require('promise');
+var request = require('request');
+var tmp = require('tmp');
+var url = require('url');
 
-var extend = require('extend')
-  , fs = require('fs')
-  , Promise = require('promise')
-  , request = require('request')
-  , tmp = require('tmp')
-  , url = require('url')
+var file_scanner = require('./file.js');
+var logger = require('../logger');
+var mycache = require('../cache');
+var myhash = require("../hash");
 
-
-var file_scanner = require('./file.js')
-  , logger = require('../logger')
-  , mycache = require('../cache')
-  , myhash = require("../hash")
+var file_max_size = require('../../config').file_max_size;
 
 
 var host_whitelist = [
@@ -67,7 +66,7 @@ function fetch_uri(payload) {
 
   return new Promise((fulfill, reject) => {
 
-    var name = tmp.tmpNameSync({ template: '/tmp/guanyu-XXXXXXXX' });
+    var name = tmp.tmpNameSync({template: '/tmp/guanyu-XXXXXXXX'});
     logger.debug(`Fetching "${payload.resource}" to "${name}"`);
 
     request({method: "HEAD", url: payload.resource}, (err, headRes) => {
@@ -82,7 +81,7 @@ function fetch_uri(payload) {
       }
 
       var fetched_size = 0,
-          res = request({url: payload.resource});
+        res = request({url: payload.resource});
 
       res
         .on('data', (data) => {
@@ -106,7 +105,7 @@ function fetch_uri(payload) {
         })
         .on('error', (err) => {
           payload.error = err;
-          reject(payload) ;
+          reject(payload);
         });
     });
   });
