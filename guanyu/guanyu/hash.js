@@ -1,35 +1,38 @@
 "use strict";
 
 var crypto = require('crypto');
+var extend = require('extend');
 var fs = require('fs');
 var Promise = require('promise');
 
 var logger = require('./logger');
 
 
-function from_string(string) {
+function from_string(string, options) {
   var shasum = crypto.createHash('sha256');
   var reply = {
-      resource: string,
-      malicious: false,
-      scanned: new Date().toISOString()
-    };
+    resource: string,
+    malicious: false,
+    scanned: new Date().toISOString(),
+    options: options
+  };
 
   return new Promise((fulfill) => {
     shasum.update(string);
     reply.hash = "text::" + shasum.digest('base64');
     logger.debug(`Hash from text "${reply.hash}"`);
-    fulfill(reply)
+    fulfill(reply);
   });
 }
 
-function from_filename(filename) {
+function from_filename(filename, options) {
   var shasum = crypto.createHash('sha256');
   var reply = {
-      filename: filename,
-      malicious: false,
-      scanned: new Date().toISOString(),
-    };
+    filename: filename,
+    malicious: false,
+    scanned: new Date().toISOString(),
+    options: options
+  };
 
   logger.debug(`Creating hash from ${filename}`);
 

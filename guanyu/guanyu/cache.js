@@ -23,6 +23,11 @@ function get_result(payload) {
     return Promise.resolve(payload);
   }
 
+  if (payload.options && payload.options.ignore_read_cache) {
+    logger.debug(`Skip cache lookup as requested "${payload.hash}"`);
+    return Promise.resolve(payload);
+  }
+
   logger.debug(`Cache lookup on "${payload.hash}"`);
 
   return get_result_redis(payload) || get_result_naive(payload);
@@ -90,6 +95,7 @@ function update_result(payload) {
   }
 
   let cached_entry = extend({}, payload, {cached: true});
+  delete cached_entry['options'];
 
   return update_result_redis(cached_entry) || update_result_naive(cached_entry);
 }
