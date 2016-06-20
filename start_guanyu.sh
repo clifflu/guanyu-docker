@@ -1,4 +1,9 @@
 #/bin/bash
+
+#
+# Run Guanyu in clifflu/sophos-av-npm for developtment
+#
+
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 docker run --rm -it \
