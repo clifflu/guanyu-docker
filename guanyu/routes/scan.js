@@ -1,9 +1,11 @@
 "use strict";
 
+var extend = require('extend');
 var fs = require('fs');
 
-var scanner = require('../guanyu/scanner.js');
-var logger = require('../guanyu/logger.js');
+var logger = require('../guanyu/logger');
+var route_helper = require('../guanyu/helper/route');
+var scanner = require('../guanyu/scanner');
 
 var file_max_size = require('../config').file_max_size;
 var router = require('express').Router();
@@ -18,24 +20,20 @@ function handle_err(res, err) {
   });
 }
 
-function collect_options(req) {
-  return {
-    ignore_read_cache: req.body.ignore_read_cache || false
-  };
-}
+
 
 router.get('/', (req, res) => {
-  res.render('scan-usage');
+  route_helper.do_render(res, 'scan-usage');
 });
 
 router.get('/file', (req, res) => {
-  res.render('scan-file-usage');
+  route_helper.do_render(res, 'scan-file-usage');
 });
 
 router.post('/file', upload.single('file'), (req, res) => {
   scanner.scan_file(
     req.file.path,
-    collect_options(req)
+    route_helper.collect_options(req)
   ).then(
     (result) => {
       logger.info(result);
@@ -47,14 +45,13 @@ router.post('/file', upload.single('file'), (req, res) => {
 
 
 router.get('/uri', (req, res) => {
-  res.render('scan-uri-usage');
+  route_helper.do_render(res, 'scan-uri-usage');
 });
 
 router.post('/uri', (req, res) => {
-
   scanner.scan_uri(
     req.body.uri,
-    collect_options(req)
+    route_helper.collect_options(req)
   ).then(
     (result) => {
       logger.info(result);
@@ -66,13 +63,13 @@ router.post('/uri', (req, res) => {
 
 
 router.get('/text', (req, res) => {
-  res.render('scan-text-usage');
+  route_helper.do_render(res, 'scan-text-usage');
 });
 
 router.post('/text', (req, res) => {
   scanner.scan_text(
     req.body.text,
-    collect_options(req)
+    route_helper.collect_options(req)
   ).then(
     (result) => {
       logger.info(result);
