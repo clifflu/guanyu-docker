@@ -17,6 +17,25 @@ var sem = require('semaphore')(sav_max_seats);
 
 
 /**
+ * Check SAVD status as promise
+ *
+ * @returns {Promise}
+ */
+function check_savd_status() {
+  var savdstatus = "/opt/sophos-av/bin/savdstatus";
+  var pattern_good = /^Sophos Anti-Virus is active /;
+
+  return new Promise((fulfill) => {
+    exec(savdstatus, {timeout: 1000}, (err, stdout) => {
+      if (stdout.match(pattern_good))
+        fulfill(true);
+
+      fulfill(false);
+    });
+  });
+}
+
+/**
  * Scans `payload.filename` with Sophos.
  *
  * Resolve or reject with {
@@ -91,5 +110,6 @@ function scan_file(filename, options) {
 
 module.exports = {
   call_sav_scan: call_sav_scan,
+  check_savd_status: check_savd_status,
   scan_file: scan_file
 };
