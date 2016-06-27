@@ -35,6 +35,27 @@ function check_savd_status() {
   });
 }
 
+
+function ensure_savd_running(payload) {
+  return new Promise((fulfill, reject) => {
+    check_savd_status().then((running) => {
+      if (running) {
+        return fulfill(payload);
+      }
+
+      exec('/opt/sophos-av/bin/savdctl --daemon start', {timeout: 3000}, (err) => {
+        if (err) {
+          logger.warn('Failed starting savd, ', err);
+          return reject(err);
+        }
+
+        logger.info('Started savd during scan');
+        fulfill(payload);
+      });
+    })
+  });
+}
+
 /**
  * Scans `payload.filename` with Sophos.
  *
@@ -104,6 +125,7 @@ function call_sav_scan(payload) {
 function scan_file(filename, options) {
   return myhash.from_filename(filename, options)
     .then(mycache.get_result)
+    .then(ensure_savd_running)
     .then(call_sav_scan)
     .then(mycache.update_result);
 }
