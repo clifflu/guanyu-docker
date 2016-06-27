@@ -7,6 +7,7 @@ var router = express.Router();
 var route_helper = require('../guanyu/helper/route');
 
 var exec = require('child_process').exec;
+var sem = require('semaphore')(4);
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
@@ -18,11 +19,15 @@ function check_savd_status() {
   var pattern_good = /^Sophos Anti-Virus is active /;
 
   return new Promise((fulfill, reject) => {
-    exec(savdstatus, {timeout: 1000}, (err, stdout) => {
-      if (stdout.match(pattern_good))
-        fulfill();
+    sem.take(() => {
+      exec(savdstatus, {timeout: 1000}, (err, stdout) => {
+        sem.leave();
 
-      reject();
+        if (stdout.match(pattern_good))
+          fulfill();
+
+        reject();
+      });
     });
   });
 }
