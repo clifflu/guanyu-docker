@@ -70,6 +70,9 @@ function fetch_uri(payload) {
     logger.debug(`Fetching "${payload.resource}" to "${name}"`);
 
     request({method: "HEAD", url: payload.resource}, (err, headRes) => {
+      if (err)
+        return reject(err);
+
       var size = headRes.headers['content-length'];
       if (size > file_max_size) {
         payload = extend(payload, {
