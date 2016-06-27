@@ -12,7 +12,7 @@ var urlRegex = /((https?:\/\/(?:(?:[a-zA-Z0-9\$\-\_\.\+\!\*\'\(\)\,\;\?\&\=]|(?:
 
 
 function check_text(payload) {
-  if (payload.result || !payload.resource) {
+  if (payload.results) {
     logger.debug("Skip checking text");
     return Promise.resolve(payload);
   }
