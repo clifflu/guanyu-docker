@@ -43,6 +43,14 @@ var host_whitelist = [
 function shortcut_host_whitelist(payload) {
   var uri = url.parse(payload.resource);
 
+  if (!uri.host) {
+    logger.info(`Failed parsing uri: ${payload.resource}`);
+    return Promise.resolve({
+      malicious: false,
+      result: `Failed parsing uri: ${payload.resource}`
+    })
+  }
+
   for (let idx = 0, len = host_whitelist.length; idx < len; idx++) {
     let host = host_whitelist[idx];
     if (uri.host.endsWith(host)) {
@@ -60,8 +68,16 @@ function shortcut_host_whitelist(payload) {
 
 function fetch_uri(payload) {
   if (payload.result || !payload.resource) {
-    logger.debug("Skip fetching uri for result found")
+    logger.debug("Skip fetching uri for result found");
     return Promise.resolve(payload);
+  }
+
+  if (payload.resource.startsWith("file://")) {
+    logger.warn(`Suspicious link found: ${payload.resource}`);
+    return Promise.resolve({
+      malicious: true,
+      result: `Suspicious uri scheme: ${payload.resource}`
+    })
   }
 
   return new Promise((fulfill, reject) => {
