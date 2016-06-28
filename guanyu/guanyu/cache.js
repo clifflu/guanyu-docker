@@ -99,9 +99,14 @@ function update_result(payload) {
   let cached_entry = extend({}, payload, {cached: true});
   delete cached_entry['options'];
 
-  return redis_client
-    ? update_result_redis(cached_entry)
-    : update_result_naive(cached_entry);
+  return new Promise((fulfill, reject) => {
+    (redis_client ? update_result_redis : update_result_naive)(cached_entry)
+      .then(
+        () => {fulfill(payload)},
+        () => {fulfill(payload)}
+      );
+
+  });
 }
 
 function update_result_redis(payload) {
