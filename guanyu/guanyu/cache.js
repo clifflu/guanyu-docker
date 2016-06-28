@@ -30,7 +30,9 @@ function get_result(payload) {
 
   logger.debug(`Cache lookup on "${payload.hash}"`);
 
-  return get_result_redis(payload) || get_result_naive(payload);
+  return redis_client
+    ? get_result_redis(payload)
+    : get_result_naive(payload);
 }
 
 
@@ -97,7 +99,9 @@ function update_result(payload) {
   let cached_entry = extend({}, payload, {cached: true});
   delete cached_entry['options'];
 
-  return update_result_redis(cached_entry) || update_result_naive(cached_entry);
+  return redis_client
+    ? update_result_redis(cached_entry)
+    : update_result_naive(cached_entry);
 }
 
 function update_result_redis(payload) {
