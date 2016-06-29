@@ -35,8 +35,8 @@ function check_text(payload) {
   }
 
   return new Promise((fulfill, reject) => {
-    let links = payload.resource.match(urlRegex)
-      , scanner_promises = [];
+    let links = payload.resource.match(urlRegex) || [];
+    let scanner_promises = [];
 
     logger.debug(`Found links in text: ${links}`);
     payload.resource = links;
