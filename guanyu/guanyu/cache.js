@@ -23,7 +23,7 @@ function get_result(payload) {
     return Promise.resolve(payload);
   }
 
-  if (payload.options && payload.options.ignore_read_cache) {
+  if (payload.options && payload.options.bypass_read_cache) {
     logger.debug(`Skip cache lookup as requested "${payload.hash}"`);
     return Promise.resolve(payload);
   }
