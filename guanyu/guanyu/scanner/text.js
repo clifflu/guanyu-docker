@@ -43,7 +43,7 @@ function check_text(payload) {
 
     for (let idx = 0, len = links.length; idx < len; idx++) {
       let link = fix_uri(links[idx]);
-      scanner_promises.push(uri_scanner.scan_uri(link));
+      scanner_promises.push(uri_scanner.scan_uri(link, payload.options || undefined));
     }
 
     Promise.all(scanner_promises).then((values) => {
