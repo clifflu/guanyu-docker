@@ -12,7 +12,7 @@ var logger = require('../logger');
 var mycache = require('../cache');
 var myhash = require("../hash");
 
-var file_max_size = require('../config').file_max_size;
+var file_max_size = require('../config').get('FILE:MAX_SIZE');
 
 
 var host_whitelist = [
