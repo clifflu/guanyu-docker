@@ -40,7 +40,8 @@ function update_boolean(name) {
   var as_number = Number(value);
 
   if (Number.isNaN(as_number)) {
-    return nconf.set(name, Boolean(value));
+    // Great readability
+    return nconf.set(name, !/^false$/i.test(value));
   }
 
   nconf.set(name, Boolean(as_number));
