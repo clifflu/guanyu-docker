@@ -3,7 +3,7 @@ var winston = require('winston');
 var config = require('./config');
 
 var logger = new (winston.Logger)({
-  level: 'debug',
+  // level: 'debug',
   transports: [
     new (winston.transports.Console)({
       timestamp: function() {
