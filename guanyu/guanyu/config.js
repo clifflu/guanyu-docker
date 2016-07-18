@@ -31,7 +31,7 @@ function bridge_deprecated_to(was, now) {
   var old_value = nconf.get(was);
   if (old_value && !nconf.get(now)) {
     nconf.set(now, old_value);
-    console.error(`[DEPRECATED] ${was} has been deprecated, use ${now} instead`);
+    console.log(`[DEPRECATED] ${was} has been deprecated, use ${now} instead`);
   }
 }
 
