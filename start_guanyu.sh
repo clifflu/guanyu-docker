@@ -1,7 +1,7 @@
-#/bin/bash
+#!/bin/bash
 
 #
-# Run Guanyu in clifflu/sophos-av-npm for developtment
+# Run Guanyu in upstream container (clifflu/sophos-av-npm) for development
 #
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

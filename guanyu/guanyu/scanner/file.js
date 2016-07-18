@@ -1,16 +1,16 @@
 "use strict";
 
-
 var assert = require('assert');
 var extend = require('extend');
 var fs = require('fs');
-var Promise = require('promise');
+var os = require('os');
 
 var logger = require('../logger');
 var mycache = require('../cache');
 var myhash = require("../hash");
 
-var sav_max_seats = require('../../config').sav_max_seats;
+var cpu_count = os.cpus().length;
+var sav_max_seats = require('../config').get('PROC_PER_CORE') * cpu_count;
 
 var exec = require('child_process').exec;
 var sem = require('semaphore')(sav_max_seats);

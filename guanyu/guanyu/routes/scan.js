@@ -3,9 +3,9 @@
 var extend = require('extend');
 var fs = require('fs');
 
-var logger = require('../guanyu/logger');
-var route_helper = require('../guanyu/helper/route');
-var scanner = require('../guanyu/scanner');
+var logger = require('../logger');
+var route_helper = require('../helper/route');
+var scanner = require('../scanner');
 
 var file_max_size = require('../config').file_max_size;
 var router = require('express').Router();

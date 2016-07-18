@@ -3,8 +3,8 @@
 var express = require('express');
 var router = express.Router();
 
-var file_scanner = require('../guanyu/scanner/file');
-var route_helper = require('../guanyu/helper/route');
+var file_scanner = require('../scanner/file');
+var route_helper = require('../helper/route');
 
 
 /* GET home page. */
