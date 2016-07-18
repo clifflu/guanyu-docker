@@ -3,7 +3,13 @@ var winston = require('winston');
 var config = require('./config');
 
 var logger = new (winston.Logger)({
-  // level: 'debug',
+  level: config.get('LOG_LEVEL') == 'debug'
+    ? 'debug'
+    : config.get('LOG_LEVEL') == 'warn'
+      ? 'warn'
+      : config.get('LOG_LEVEL') == 'verbose'
+        ? 'verbose'
+        : 'info',
   transports: [
     new (winston.transports.Console)({
       timestamp: function() {

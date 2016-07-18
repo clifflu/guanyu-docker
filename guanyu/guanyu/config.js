@@ -13,6 +13,7 @@ nconf.use('memory')
     'CACHE__DDB__TABLE',
     'DRUNK',
     'FILE__MAX_SIZE',
+    'LOG_LEVEL',
     'PROC_PER_CORE',
     'REDIS_HOST',
     'UTOPIA',
