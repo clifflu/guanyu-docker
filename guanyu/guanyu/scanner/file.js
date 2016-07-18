@@ -5,6 +5,7 @@ var extend = require('extend');
 var fs = require('fs');
 var os = require('os');
 
+var config = require("../config");
 var logger = require('../logger');
 var mycache = require('../cache');
 var myhash = require("../hash");
@@ -39,7 +40,7 @@ function check_savd_status() {
 function ensure_savd_running(payload) {
   return new Promise((fulfill, reject) => {
     check_savd_status().then((running) => {
-      if (running) {
+      if (running || config.get('DRUNK')) {
         return fulfill(payload);
       }
 
@@ -100,7 +101,7 @@ function call_sav_scan(payload) {
           assert(err.code == 3);
           payload.malicious = true;
           payload.result = match[1]
-        } else if (stderr == '' && !err) {
+        } else if ((stderr == '' && !err) || config.get('DRUNK')) {
           // No output and return 0 if negative
           payload.result = "clean";
         } else if (err && err.code == 2) {
