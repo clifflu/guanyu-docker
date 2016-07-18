@@ -1,7 +1,6 @@
 "use strict";
 
 var extend = require('extend');
-var Promise = require('promise');
 var redis = require("redis");
 
 var logger = require('./logger');

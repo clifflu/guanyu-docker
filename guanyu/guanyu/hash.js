@@ -3,7 +3,6 @@
 var crypto = require('crypto');
 var extend = require('extend');
 var fs = require('fs');
-var Promise = require('promise');
 
 var logger = require('./logger');
 

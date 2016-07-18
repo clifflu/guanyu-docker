@@ -2,7 +2,6 @@
 
 var extend = require('extend');
 var fs = require('fs');
-var Promise = require('promise');
 var request = require('request');
 var tmp = require('tmp');
 var url = require('url');
