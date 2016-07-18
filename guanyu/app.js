@@ -28,9 +28,11 @@ app.use((req, res, next) => {
     if (req.headers['api-token'] != config.get('API_TOKEN')) {
       var err = new Error('Forbidden: API Token required');
       err.status = 403;
-      next(err);
+      return next(err);
     }
   }
+
+  next();
 });
 
 app.use('/', require('./guanyu/routes/index'));
