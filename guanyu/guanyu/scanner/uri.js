@@ -21,6 +21,7 @@ var host_whitelist = [
   'facebook.com',
   'flickr.com',
   'ford.com.tw',
+  'www.google.com',
   'imgur.com',
   'linkedin.com',
   'microsoft.com',

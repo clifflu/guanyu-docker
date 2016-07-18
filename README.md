@@ -19,7 +19,13 @@ docker run -d -p 3000:3000 clifflu/guanyu
 
 ## Starting Options (Environments)
 
-### Utopia
+### LOGLEVEL
+
+Env: LOG_LEVEL
+Valid values: ['debug', 'verbose', 'info', 'warn']
+Default: info
+
+### Drunk
 
 Env: `DRUNK`
 

@@ -13,6 +13,7 @@ nconf.use('memory')
     'CACHE__DDB__TABLE',
     'DRUNK',
     'FILE__MAX_SIZE',
+    'LOG_LEVEL',
     'PROC_PER_CORE',
     'REDIS_HOST',
     'UTOPIA',
@@ -40,8 +41,10 @@ function update_boolean(name) {
   var as_number = Number(value);
 
   if (Number.isNaN(as_number)) {
-    // Great readability
-    return nconf.set(name, !/^false$/i.test(value));
+    if (/^false$/i.test(value))
+      return nconf.set(name, false);;
+
+    return nconf.set(name, Boolean(value));
   }
 
   nconf.set(name, Boolean(as_number));
