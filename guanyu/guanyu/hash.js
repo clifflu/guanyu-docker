@@ -18,7 +18,7 @@ function from_string(string, options) {
 
   return new Promise((fulfill) => {
     shasum.update(string);
-    reply.hash = "text::" + shasum.digest('base64');
+    reply.hash = shasum.digest('base64');
     logger.debug(`Hash from text "${reply.hash}"`);
     fulfill(reply);
   });
@@ -42,7 +42,7 @@ function from_filename(filename, options) {
         shasum.update(d)
       });
       s.on('end', () => {
-        reply.hash = "file::" + shasum.digest('base64');
+        reply.hash = shasum.digest('base64');
         logger.debug(`${reply.filename} hashed to "${reply.hash}"`);
         fulfill(reply)
       });
