@@ -24,7 +24,7 @@ app.use(bodyParser.urlencoded({limit: file_max_size, extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use((req, res, next) => {
-  if (config.get('API_TOKEN')) {
+  if (req.method == 'POST' && config.get('API_TOKEN')) {
     if (req.headers['api-token'] != config.get('API_TOKEN')) {
       var err = new Error('Forbidden: API Token required');
       err.status = 403;

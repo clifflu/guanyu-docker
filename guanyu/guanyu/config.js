@@ -35,22 +35,31 @@ function bridge_deprecated_to(was, now) {
   }
 }
 
-
-function update_boolean(now) {
-  var value = nconf.get(now);
+function update_boolean(name) {
+  var value = nconf.get(name);
   var as_number = Number(value);
 
   if (Number.isNaN(as_number)) {
-    return nconf.set(now, Boolean(value));
+    // Great readability
+    return nconf.set(name, !/^false$/i.test(value));
   }
 
-  nconf.set(now, Boolean(as_number));
+  nconf.set(name, Boolean(as_number));
 }
 
+function update_number(name) {
+  var value = nconf.get(name);
+  var as_number = Number(value);
+
+  if (!Number.isNaN(as_number)) {
+    nconf.set(name, as_number);
+  }
+}
 
 bridge_deprecated_to('REDIS_HOST', 'CACHE:REDIS:HOST');
 bridge_deprecated_to('UTOPIA', 'DRUNK');
 
+update_number('PROC_PER_CORE');
 update_boolean('DRUNK');
 
 module.exports = nconf;
