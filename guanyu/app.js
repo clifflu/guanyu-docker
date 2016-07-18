@@ -23,8 +23,18 @@ app.use(bodyParser.urlencoded({limit: file_max_size, extended: false }));
 // app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', require('./routes/index'));
-app.use('/scan', require('./routes/scan'));
+app.use((req, res, next) => {
+  if (config.get('API_TOKEN')) {
+    if (req.headers['api-token'] != config.get('API_TOKEN')) {
+      var err = new Error('Forbidden: API Token required');
+      err.status = 403;
+      next(err);
+    }
+  }
+});
+
+app.use('/', require('./guanyu/routes/index'));
+app.use('/scan', require('./guanyu/routes/scan'));
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
@@ -38,7 +48,7 @@ app.use((req, res, next) => {
 // development error handler
 // will print stacktrace
 if (app.get('env') === 'development') {
-  app.use(function(err, req, res, next) {
+  app.use(function(err, req, res) {
     res.status(err.status || 500);
     res.render('error', {
       message: err.message,
@@ -48,8 +58,8 @@ if (app.get('env') === 'development') {
 }
 
 // production error handler
-// no stacktraces leaked to user
-app.use((err, req, res, next) => {
+// no stacktrace for user
+app.use((err, req, res) => {
   res.status(err.status || 500);
   res.render('error', {
     message: err.message,

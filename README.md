@@ -17,8 +17,15 @@ docker run -d -p 3000:3000 clifflu/guanyu
 ```
 
 
-## Starting Guanyu with REDIS
+## Starting Options (Environments)
 
+### API Token
+
+Env: `API_TOKEN`
+
+### REDIS
+
+Env: `REDIS_HOST`
 Cache results on a redis server.
 
 ```
