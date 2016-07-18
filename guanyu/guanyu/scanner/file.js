@@ -134,5 +134,6 @@ function scan_file(filename, options) {
 module.exports = {
   call_sav_scan: call_sav_scan,
   check_savd_status: check_savd_status,
-  scan_file: scan_file
+  sav_max_seats: sav_max_seats,
+  scan_file: scan_file,
 };
