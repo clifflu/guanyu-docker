@@ -1,7 +1,6 @@
 "use strict";
 
 var extend = require('extend');
-var Promise = require('promise');
 
 var logger = require('../logger');
 var mycache = require('../cache');

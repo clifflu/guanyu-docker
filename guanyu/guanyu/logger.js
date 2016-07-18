@@ -1,7 +1,9 @@
 var winston = require('winston');
 
+var config = require('./config');
+
 var logger = new (winston.Logger)({
-  // level: 'debug',
+  level: 'debug',
   transports: [
     new (winston.transports.Console)({
       timestamp: function() {
@@ -16,6 +18,10 @@ var logger = new (winston.Logger)({
   ]
 });
 
-logger.info("Guanyu at your service...");
+var hellomsg = "Guanyu at your service...";
+if (config.get('DRUNK')) {
+  hellomsg = "[DRUNK] " + hellomsg + " (HIC ..ooOO)";
+}
+logger.info(hellomsg);
 
 module.exports = logger;

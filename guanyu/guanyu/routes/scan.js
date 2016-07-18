@@ -7,7 +7,7 @@ var logger = require('../logger');
 var route_helper = require('../helper/route');
 var scanner = require('../scanner');
 
-var file_max_size = require('../config').file_max_size;
+var file_max_size = require('../config').get('FILE:MAX_SIZE');
 var router = require('express').Router();
 var upload = require('multer')({limits: {fileSize: file_max_size}, dest: '/tmp/'});
 
