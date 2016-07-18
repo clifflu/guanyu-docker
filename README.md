@@ -19,18 +19,26 @@ docker run -d -p 3000:3000 clifflu/guanyu
 
 ## Starting Options (Environments)
 
+### Utopia
+
+Env: `DRUNK`
+
+Suppress common exceptions and assume files to be safe.
+
 ### API Token
 
 Env: `API_TOKEN`
 
 ### REDIS
 
-Env: `REDIS_HOST`
+Env: `CACHE__REDIS__HOST`
 Cache results on a redis server.
+
+Was `REDIS_HOST`
 
 ```
 docker run -d --name guanyu-storage redis redis-server --save 30 5  # Start redis
-docker run -d -p 3000:3000 --link guanyu-storage --env REDIS_HOST=guanyu-storage clifflu/guanyu
+docker run -d -p 3000:3000 --link guanyu-storage --env CACHE__REDIS__HOST=guanyu-storage clifflu/guanyu
 ```
 
 
