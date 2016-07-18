@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "nodemon bin/www",
+    "prestart": "/opt/sophos-av/bin/savdctl start || echo '** Running without Sophos-AV'",
     "start": "node bin/www"
   },
   "dependencies": {
