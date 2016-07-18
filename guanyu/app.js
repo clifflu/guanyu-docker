@@ -6,9 +6,10 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var bodyParser = require('body-parser');
 
-var file_max_size = require('./config').file_max_size;
+var config = require('./guanyu/config');
 
 var app = express();
+var file_max_size = config.get('FILE:MAX_SIZE');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
