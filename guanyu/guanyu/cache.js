@@ -59,7 +59,7 @@ function get_result(payload) {
     return Promise.resolve(payload);
   }
 
-  if (payload.options && payload.options.bypass_read_cache) {
+  if (payload.options && payload.options.bypass_cache) {
     logger.debug(`Skip cache lookup as requested "${payload.hash}"`);
     return Promise.resolve(payload);
   }
@@ -175,9 +175,15 @@ function update_result(payload) {
   if (payload.cached) {
     return Promise.resolve(payload);
   }
+
   if (!payload.hash) {
     logger.error("Critical field `hash` missing on payload " + JSON.stringify(payload));
     return Promise.reject("hash missing");
+  }
+
+  if (payload.options && payload.options.bypass_cache) {
+    logger.debug(`Skip updating cache as requested "${payload.hash}"`);
+    return Promise.resolve(payload);
   }
 
   let cached_entry = extend({}, payload, {cached: true});
