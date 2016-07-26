@@ -2,14 +2,15 @@ var winston = require('winston');
 
 var config = require('./config');
 
+var log_level = {
+  default: 'info',
+  candidates: new Set(['debug', 'info', 'verbose', 'warn'])
+};
+
 var logger = new (winston.Logger)({
-  level: config.get('LOG_LEVEL') == 'debug'
-    ? 'debug'
-    : config.get('LOG_LEVEL') == 'warn'
-      ? 'warn'
-      : config.get('LOG_LEVEL') == 'verbose'
-        ? 'verbose'
-        : 'info',
+  level: log_level.candidates.has(config.get('LOG_LEVEL'))
+    ? config.get('LOG_LEVEL')
+    : log_level.default,
   transports: [
     new (winston.transports.Console)({
       timestamp: function() {
