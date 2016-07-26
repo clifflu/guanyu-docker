@@ -42,7 +42,7 @@ function update_boolean(name) {
 
   if (Number.isNaN(as_number)) {
     if (/^false$/i.test(value))
-      return nconf.set(name, false);;
+      return nconf.set(name, false);
 
     return nconf.set(name, Boolean(value));
   }
@@ -59,10 +59,28 @@ function update_number(name) {
   }
 }
 
+function harvest_api_tokens(api_token){
+  var tokens = new Set();
+
+  if (api_token) {
+    api_token.split(',').map((token) => {
+      if (token = token.trim()) {
+        tokens.add(token);
+      }
+    });
+  }
+
+  return tokens.size == 0
+    ? null
+    : tokens;
+}
+
 bridge_deprecated_to('REDIS_HOST', 'CACHE:REDIS:HOST');
 bridge_deprecated_to('UTOPIA', 'DRUNK');
 
 update_number('PROC_PER_CORE');
 update_boolean('DRUNK');
+
+nconf.set('api-tokens', harvest_api_tokens(nconf.get('API_TOKEN')));
 
 module.exports = nconf;

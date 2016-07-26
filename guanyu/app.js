@@ -24,10 +24,11 @@ app.use(bodyParser.urlencoded({limit: file_max_size, extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use((req, res, next) => {
-  if (req.method == 'POST' && config.get('API_TOKEN')) {
-    if (req.headers['api-token'] != config.get('API_TOKEN')) {
-      var err = new Error('Forbidden: API Token required');
+  if (req.method == 'POST' && config.get('api-tokens')) {
+    if (!config.get('api-tokens').has(req.headers['api-token'])) {
+      var err = new Error('Forbidden');
       err.status = 403;
+
       return next(err);
     }
   }
