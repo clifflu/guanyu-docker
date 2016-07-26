@@ -59,7 +59,7 @@ function get_result(payload) {
     return Promise.resolve(payload);
   }
 
-  if (payload.options && payload.options.bypass_read_cache) {
+  if (payload.options && payload.options.bypass_cache) {
     logger.debug(`Skip cache lookup as requested "${payload.hash}"`);
     return Promise.resolve(payload);
   }
@@ -150,7 +150,7 @@ function get_result_ddb(payload) {
         return fulfill(payload);
       }
 
-      if (data.Item && data.Item.length) {
+      if (data.Item) {
         logger.info(`Cache hit (ddb) "${payload.hash}"`);
         try {
           return fulfill(JSON.parse(data.Item.payload.S));
@@ -159,6 +159,8 @@ function get_result_ddb(payload) {
           return fulfill(payload);
         }
       }
+
+      logger.debug(`blah: ${JSON.stringify(data)}`);
 
       logger.debug(`Cache miss (ddb) "${payload.hash}"`);
       fulfill(payload);
@@ -172,12 +174,14 @@ function get_result_ddb(payload) {
  * @returns {Promise}
  */
 function update_result(payload) {
-  if (payload.cached) {
-    return Promise.resolve(payload);
-  }
   if (!payload.hash) {
     logger.error("Critical field `hash` missing on payload " + JSON.stringify(payload));
     return Promise.reject("hash missing");
+  }
+
+  if (payload.options && payload.options.bypass_cache) {
+    logger.debug(`Skip updating cache as requested "${payload.hash}"`);
+    return Promise.resolve(payload);
   }
 
   let cached_entry = extend({}, payload, {cached: true});
@@ -196,7 +200,13 @@ function update_result(payload) {
 
 function update_result_naive(payload) {
   logger.debug(`Updating cache (naive) ${payload.hash}`);
-  naive_database[payload.hash] = payload;
+  if (payload.source == 'naive') {
+    // do nothing
+  } else {
+    // update naive cache otherwise
+    naive_database[payload.hash] = extend({}, payload, {source: 'naive'});
+  }
+
   return Promise.resolve(payload);
 }
 
@@ -207,9 +217,14 @@ function update_result_redis(payload) {
     return Promise.resolve(payload);
   }
 
+  if (payload.source == 'naive' || payload.source == 'redis') {
+    // do nothing
+    return Promise.resolve(payload);
+  }
+
   logger.debug(`Updating redis cache ${payload.hash}`);
   return new Promise((fulfill, reject) => {
-    redis_client.set(payload.hash, JSON.stringify(payload), function (err) {
+    redis_client.set(payload.hash, JSON.stringify(extend({}, payload, {source: 'redis'})), function (err) {
       if (err) {
         logger.error("Redis update failed ", err);
         return reject(err);
@@ -229,14 +244,18 @@ function update_result_ddb(payload) {
 
   logger.debug(`Updating ddb cache ${payload.hash}`);
 
+  if (payload.source) {
+    return Promise.resolve(payload);
+  }
+
   return new Promise(fulfill => {
     dynamodb.putItem({
       Item: {
         hash: {B: b64decode(payload.hash)},
-        payload: {S: JSON.stringify(payload)},
+        payload: {S: JSON.stringify(extend({}, payload, {source: 'ddb'}))},
       },
       TableName: config.get('CACHE:DDB:TABLE'),
-    }, (err, data) => {
+    }, (err) => {
       if (err) {
         logger.error("Failed putItem to ddb", err);
         return fulfill(payload);
