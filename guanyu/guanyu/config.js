@@ -72,7 +72,7 @@ function harvest_api_tokens(api_token){
 
   return tokens.size == 0
     ? null
-    : tokens;
+    : Array.from(tokens);
 }
 
 bridge_deprecated_to('REDIS_HOST', 'CACHE:REDIS:HOST');
