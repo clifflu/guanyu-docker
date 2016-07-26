@@ -24,8 +24,10 @@ app.use(bodyParser.urlencoded({limit: file_max_size, extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use((req, res, next) => {
-  if (req.method == 'POST' && config.get('api-tokens')) {
-    if (!config.get('api-tokens').has(req.headers['api-token'])) {
+  let tokens = config.get('api-tokens');
+  if (req.method == 'POST' && tokens) {
+    let token_set = new Set(tokens);
+    if (!token_set.has(req.headers['api-token'])) {
       var err = new Error('Forbidden');
       err.status = 403;
 
