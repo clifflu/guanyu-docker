@@ -52,10 +52,10 @@ var logger = require('./logger');
 function from_string(string, options) {
   var shasum = crypto.createHash('sha256');
   var reply = {
-    resource: string,
     malicious: false,
-    scanned: new Date().toISOString(),
-    options: options
+    options: options,
+    resource: string,
+    scanned: new Date().toISOString()
   };
 
   return new Promise((fulfill) => {
@@ -71,8 +71,8 @@ function from_filename(filename, options) {
   var reply = {
     filename: filename,
     malicious: false,
+    options: options,
     scanned: new Date().toISOString(),
-    options: options
   };
 
   logger.debug(`Creating hash from ${filename}`);
