@@ -5,7 +5,7 @@ block content
 
     p.
         Guanyu fetches from #[code uri], a uri passed in #[code x-www-form-urlencoded],
-        scans it, and respond with json document.
+        scans it, and respond with json document. Supports http and https uri.
 
     h2 Sample Input
 
@@ -14,12 +14,15 @@ block content
         dd #[code application/x-www-form-urlencoded] or #[code application/json]
 
         dt (text) uri
-        dd Uri that Guanyu will download and scan.
+        dd Uri that Guanyu will fetch and scan, must include schemes (https?://)
 
         dt (bool) bypass_cache
         dd Bypass cache and force a re-scan.
 
-    h3 cURL
+        dt (bool) fall_with_upstream
+        dd Throw exception if Guanyu fails to read from any URI
+
+h3 cURL
 
     code curl -X POST -d "uri=#[em [URI]]" "#[em [Guanyu URI]]"
     p eg. curl -X POST -d "uri=http://home.clifflu.net/" http://localhost:3000/scan/uri"

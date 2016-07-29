@@ -20,6 +20,9 @@ block content
         dt (bool) bypass_cache
         dd Bypass cache and force a re-scan.
 
+        dt (bool) fall_with_upstream
+        dd Throw exception if Guanyu fails to read from any URI
+
     h3 cURL
 
     code curl -X POST -d "text=#[em [TEXT]]" "#[em [Guanyu URI]]"
@@ -39,7 +42,7 @@ block content
               "scanned": "2016-06-07T10:29:27.413Z",
               "hash": "text::1QBK4GRnSJijbPgdyaZWUIJ8M6S0pdFscp5qxb+fp2s=",
               "results": {
-                "https://home.clifflu.net/asdf": "clean",
-                "http://www.kimo.com.tw": "whitelisted (www.kimo.com.tw)"
+                "https://home.clifflu.net/asdf": "",
+                "http://www.kimo.com.tw": "whitelisted"
               }
             }
