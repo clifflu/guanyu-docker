@@ -23,16 +23,16 @@ function handle_err(res, err) {
 
 
 router.get('/', (req, res) => {
-  route_helper.do_render(res, 'scan-usage');
+  route_helper.do_render(res, 'usage-scan');
 });
 
 router.get('/file', (req, res) => {
-  route_helper.do_render(res, 'scan-file-usage');
+  route_helper.do_render(res, 'usage-scan-file');
 });
 
 router.post('/file', upload.single('file'), (req, res) => {
   scanner.scan_file(
-    req.file.path,
+    req.file ? req.file.path : undefined,
     route_helper.collect_options(req)
   ).then(
     (result) => {
@@ -45,7 +45,7 @@ router.post('/file', upload.single('file'), (req, res) => {
 
 
 router.get('/uri', (req, res) => {
-  route_helper.do_render(res, 'scan-uri-usage');
+  route_helper.do_render(res, 'usage-scan-uri');
 });
 
 router.post('/uri', (req, res) => {
@@ -63,7 +63,7 @@ router.post('/uri', (req, res) => {
 
 
 router.get('/text', (req, res) => {
-  route_helper.do_render(res, 'scan-text-usage');
+  route_helper.do_render(res, 'usage-scan-text');
 });
 
 router.post('/text', (req, res) => {

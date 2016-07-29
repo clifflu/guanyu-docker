@@ -1,6 +1,6 @@
-extends layout
+extends layout-usage
 
-block content
+block description
     h1 Scan File
 
     p.
@@ -10,26 +10,20 @@ block content
         Sophos AV (which guanyu was built upon) is able to scan through some archive formats
         (zip, rar, ...), and it will report malicious if any of these files are malicious.
 
-
-    h2 Sample Input
+block sample_input
+    p Encoding: #[code multipart/form-data]
 
     dl
-        dt Encoding
-        dd #[code multipart/form-data]
-
-        dt (blob) file
+        dt (blob) #[B file]
         dd File to scan
 
-        dt (bool) bypass_cache
-        dd Bypass cache and force a re-scan.
+        include ./common-options.jade
 
-    h3 cURL
-
+block sample_curl
     code curl -X POST -F "file=@#[em [File Path]]" "#[em [Guanyu URL]]"
     p eg. curl -X POST -F "file=@/tmp/virus.exe" http://localhost:3000/scan/file"
 
-    h2 Sample Output
-
+block sample_output
     code
         pre.
             {

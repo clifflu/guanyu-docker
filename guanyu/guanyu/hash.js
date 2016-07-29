@@ -28,8 +28,8 @@
  *    scanned:
  *      ISO datetime string
  *
- *    flags:
- *      placeholder for temporarily flags that acts like internal options
+ *    version:
+ *      Guanyu version
  * }
  *
  * Error: {
@@ -47,6 +47,7 @@ var extend = require('extend');
 var fs = require('fs');
 
 var logger = require('./logger');
+var version = require('./version');
 
 
 function from_string(string, options) {
@@ -55,7 +56,8 @@ function from_string(string, options) {
     malicious: false,
     options: options,
     resource: string,
-    scanned: new Date().toISOString()
+    scanned: new Date().toISOString(),
+    version: version,
   };
 
   return new Promise((fulfill) => {
@@ -73,6 +75,7 @@ function from_filename(filename, options) {
     malicious: false,
     options: options,
     scanned: new Date().toISOString(),
+    version: version,
   };
 
   logger.debug(`Creating hash from ${filename}`);

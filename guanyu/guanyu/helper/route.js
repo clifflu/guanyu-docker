@@ -2,10 +2,16 @@ var extend = require('extend');
 
 
 function collect_options(req) {
-  return {
-    bypass_cache: req.body.bypass_cache || req.body.bypass_read_cache || false,
+  var options = {
+    bypass_cache: req.body.bypass_read_cache || false,
     fall_with_upstream: req.body.fall_with_upstream || false,
   };
+
+  extend(options, {
+    bypass_read_cache: options.bypass_cache || req.body.bypass_read_cache || false,
+  });
+
+  return options;
 }
 
 function do_render(res, template, options) {

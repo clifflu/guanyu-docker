@@ -1,6 +1,6 @@
-extends layout
+extends layout-usage
 
-block content
+block description
     h1 Scan Text
 
     p.
@@ -8,28 +8,22 @@ block content
         and respond with json document in similar format.
 
 
-    h2 Sample Input
+block sample_input
+    p Encoding: #[code application/x-www-form-urlencoded] or #[code application/json]
 
     dl
-        dt Encoding
-        dd #[code application/x-www-form-urlencoded] or #[code application/json]
-
-        dt (text) text
+        dt (text) #[B text]
         dd Text that guanyu will collect links from.
 
-        dt (bool) bypass_cache
-        dd Bypass cache and force a re-scan.
+        include ./common-options.jade
 
-        dt (bool) fall_with_upstream
-        dd Throw exception if Guanyu fails to read from any URI
-
-    h3 cURL
+block sample_curl
 
     code curl -X POST -d "text=#[em [TEXT]]" "#[em [Guanyu URI]]"
     p eg. curl -X POST -d "text=aaaaaaaa http://home.clifflu.net/" http://localhost:3000/scan/text"
 
 
-    h2 Sample Output
+block sample_output
 
     code
         pre.
