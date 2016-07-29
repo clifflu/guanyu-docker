@@ -1,6 +1,7 @@
 # Guanyu
 
-RESTful API for [Sohpos Antivirus for Linux Free](https://www.sophos.com/en-us/products/free-tools/sophos-antivirus-for-linux.aspx).
+RESTful API wrapper for [Sohpos Antivirus for Linux Free](https://www.sophos.com/en-us/products/free-tools/sophos-antivirus-for-linux.aspx) 
+on top of [maxipowa/sophos-av](https://github.com/maxpowa/sophos-av-docker).
 
 ## Install
 
@@ -86,3 +87,7 @@ docker run -d -p 3000:3000 --link guanyu-storage --env CACHE__REDIS__HOST=guanyu
 ## License
 
 MIT
+
+## Note
+
+Guanyu is open-sourced under permission as a side project from [104 Corp.](https://www.104.com.tw/) 
