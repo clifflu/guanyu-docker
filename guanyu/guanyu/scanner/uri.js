@@ -124,8 +124,8 @@ function _fetch_uri(payload) {
           error: err,
         }));
 
-      // Catches upstream 4XX and 5XX
-      if (Math.floor(headRes.statusCode / 100) >= 4) {
+      // Catches upstream 4XX
+      if (Math.floor(headRes.statusCode / 100) == 4) {
         return reject(extend(payload, {
           status: 400,
           message: "Upstream failed: " + headRes.statusMessage,
