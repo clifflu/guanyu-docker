@@ -59,9 +59,11 @@ function get_result(payload) {
     return Promise.resolve(payload);
   }
 
-  if (payload.options && payload.options.bypass_cache) {
-    logger.debug(`Skip cache lookup as requested "${payload.hash}"`);
-    return Promise.resolve(payload);
+  if (payload.options) {
+    if (payload.options.bypass_cache || payload.options.bypass_read_cache) {
+      logger.debug(`Skip cache lookup as requested "${payload.hash}"`);
+      return Promise.resolve(payload);
+    }
   }
 
   logger.debug(`Cache lookup on "${payload.hash}"`);
