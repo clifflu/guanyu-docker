@@ -186,7 +186,7 @@ function update_result(payload) {
     return Promise.resolve(payload);
   }
 
-  if (payload.result.startsWith('#')) {
+  if (String(payload.result).startsWith('#')) {
     logger.info(`Skip updating cache with indeterminate results (#.*) "${payload.hash}"`);
     return Promise.resolve(payload);
   }
