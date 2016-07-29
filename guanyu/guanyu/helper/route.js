@@ -3,7 +3,8 @@ var extend = require('extend');
 
 function collect_options(req) {
   return {
-    bypass_cache: req.body.bypass_cache || req.body.bypass_read_cache || false
+    bypass_cache: req.body.bypass_cache || req.body.bypass_read_cache || false,
+    fall_with_upstream: req.body.fall_with_upstream || false,
   };
 }
 

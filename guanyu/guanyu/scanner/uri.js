@@ -66,18 +66,50 @@ function shortcut_host_whitelist(payload) {
   return Promise.resolve(payload);
 }
 
+/**
+ * Wraps _fetch_uri and handle fall_with_upstream
+ *
+ * @param payload
+ * @returns {Promise}
+ */
 function fetch_uri(payload) {
-  if (payload.result || !payload.resource) {
-    logger.debug("Skip fetching uri for result found");
+  var fall_with_upstream = payload.options && payload.options.fall_with_upstream;
+
+  if (fall_with_upstream)
+    return _fetch_uri(payload);
+
+  return _fetch_uri(payload).catch(function(payload) {
+    extend(payload, {
+      malicious: false,
+      result: `#${payload.message}`,
+    });
+
+    delete payload.error;
+    delete payload.status;
+    delete payload.message;
+
+    return Promise.resolve(payload);
+  });
+}
+
+/**
+ *
+ * @param payload
+ * @returns {Promise}
+ * @private
+ */
+function _fetch_uri(payload) {
+  if (payload.result) {
+    logger.debug("Skip fetching uri for result already known");
     return Promise.resolve(payload);
   }
 
-  if (payload.resource.startsWith("file://")) {
-    logger.warn(`Suspicious link found: ${payload.resource}`);
-    return Promise.resolve({
-      malicious: true,
-      result: `Suspicious uri scheme: ${payload.resource}`
-    })
+  if (!/^https?:\/\/.+/.test(payload.resource)) {
+    logger.warn(`Unsupported uri: ${payload.resource}`);
+    return Promise.reject(extend({}, payload, {
+      status: 400,
+      message: `Unsupported uri: ${payload.resource}`
+    }));
   }
 
   return new Promise((fulfill, reject) => {
@@ -87,20 +119,30 @@ function fetch_uri(payload) {
 
     request({method: "HEAD", url: payload.resource}, (err, headRes) => {
       if (err)
-        return reject(err);
+        return reject(extend(payload, {
+          status: 500,
+          error: err,
+        }));
+
+      // Catches upstream 4XX and 5XX
+      if (Math.floor(headRes.statusCode / 100) >= 4) {
+        return reject(extend(payload, {
+          status: 400,
+          message: "Upstream failed: " + headRes.statusMessage,
+        }))
+      }
 
       var size = headRes.headers['content-length'];
       if (size > file_max_size) {
-        payload = extend(payload, {
-          message: "Resource too large",
+        return reject(extend(payload, {
           status: 413,
-          stack: `Resource size "${size}" exceeds limit "${file_max_size}"`
-        });
-        return reject(payload);
+          message: "Resource too large",
+          result: new Error(`Resource size "${size}" exceeds limit "${file_max_size}"`)
+        }));
       }
 
-      var fetched_size = 0,
-        res = request({url: payload.resource});
+      var fetched_size = 0;
+      var res = request({url: payload.resource});
 
       res
         .on('data', (data) => {
@@ -109,9 +151,9 @@ function fetch_uri(payload) {
             res.abort();
             fs.unlink(name);
             payload = extend(payload, {
-              message: "Resource too large",
               status: 413,
-              stack: `Fetched size "${fetched_size}" exceeds limit "${file_max_size}"`
+              message: "Resource too large",
+              error: new Error(`Fetched size "${fetched_size}" exceeds limit "${file_max_size}"`)
             });
             return reject(payload)
           }
@@ -119,12 +161,17 @@ function fetch_uri(payload) {
         .pipe(fs.createWriteStream(name))
         .on('finish', () => {
           payload.filename = name;
-          logger.debug(`Saved locally ${payload.filename}`)
+          logger.debug(`Saved locally ${payload.filename}`);
           fulfill(payload);
         })
         .on('error', (err) => {
-          payload.error = err;
-          reject(payload);
+          // Fetch failed
+
+          reject(extend(payload, {
+            status: "400",
+            message: "fetch failed",
+            error: err,
+          }));
         });
     });
   });
