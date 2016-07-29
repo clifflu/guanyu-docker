@@ -15,28 +15,26 @@ router.get('/', function (req, res, next) {
 
 
 router.get('/healthcheck', (req, res) => {
+  var status = 200;
   var response = {
-    'param': {
-      'proc_per_core': require('../config').get('PROC_PER_CORE'),
-      'sav_max_seats': require('../scanner/file').sav_max_seats,
+    param: {
+      status: 'healthy',
+      proc_per_core: require('../config').get('PROC_PER_CORE'),
+      sav_max_seats: require('../scanner/file').sav_max_seats,
     }
   };
 
   file_scanner.check_savd_status().then((running) => {
-    if (running) {
+    if (!running) {
+      // savd down
+      status = 500;
       extend(response, {
-        'status': 'healthy'
+        'status': 'unhealthy',
+        'reason': 'Sophos AV Engine Down',
       });
-      return res.send(response);
     }
 
-    // savd down
-    extend(response, {
-      'status': 'unhealthy',
-      'reason': 'Sophos AV Engine Gone',
-    });
-
-    res.status(500).send(response);
+    res.status(status).send(response);
   });
 });
 

@@ -28,7 +28,7 @@ function fix_uri(resource) {
 
 
 function check_text(payload) {
-  if (payload.results) {
+  if (payload.result) {
     logger.debug("Skip checking text");
     return Promise.resolve(payload);
   }
@@ -48,14 +48,14 @@ function check_text(payload) {
     Promise.all(scanner_promises).then((values) => {
       extend(payload, {
         malicious: false,
-        results: {},
+        result: {},
       });
 
       for (let idx = 0, len = values.length; idx < len; idx++) {
         let v = values[idx];
 
         payload.malicious = payload.malicious || (!!v.malicious);
-        payload.results[v.resource] = v.result
+        payload.result[v.resource] = v.result
       }
       logger.debug(`Text scan result: ${payload}`);
       fulfill(payload);

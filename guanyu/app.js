@@ -19,7 +19,7 @@ app.set('view engine', 'jade');
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
 app.use(bodyParser.json({limit: file_max_size}));
-app.use(bodyParser.urlencoded({limit: file_max_size, extended: false }));
+app.use(bodyParser.urlencoded({limit: file_max_size, extended: false}));
 // app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -49,8 +49,7 @@ app.use((req, res, next) => {
 });
 
 // error handlers
-
-// no stacktrace for user
+// no stacktrace for production
 app.use((err, req, res) => {
   res.status(err.status || 500);
   res.render('error', {
@@ -58,6 +57,5 @@ app.use((err, req, res) => {
     error: (app.get('env') === 'development') ? err.error : '',
   });
 });
-
 
 module.exports = app;
