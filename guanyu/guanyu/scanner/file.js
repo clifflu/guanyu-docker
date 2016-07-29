@@ -60,12 +60,9 @@ function ensure_savd_running(payload) {
 /**
  * Scans `payload.filename` with Sophos.
  *
- * Resolve or reject with {
+ * Resolve with standard payload defined in cache.js hydrated with following attributes: {
  *  malicious: bool,
- *  scanned: ISO Time string,
- *  hash: hash (sha256 in base64) of that file
- *  result: scan result [clean|VirusName]
- *  error: stderr on error
+ *  result: scan result (virus name | empty string) or error
  * }
  *
  * @param payload
@@ -81,6 +78,13 @@ function call_sav_scan(payload) {
   if (payload.result || !payload.filename) {
     logger.debug("Skip sav scan for result or !filename");
     return Promise.resolve(payload);
+  }
+
+  if (config.get('DRUNK')) {
+    return Promise.resolve(extend(payload, {
+      malicious: false,
+      result: "#drunk",
+    }))
   }
 
   logger.debug(`Scanning (sophos) ${payload.filename}`);
@@ -101,19 +105,22 @@ function call_sav_scan(payload) {
           assert(err.code == 3);
           payload.malicious = true;
           payload.result = match[1]
-        } else if ((stderr == '' && !err) || config.get('DRUNK')) {
+        } else if (stderr == '' && !err) {
           // No output and return 0 if negative
+          payload.malicious = false;
           payload.result = "clean";
         } else if (err && err.code == 2) {
           // Encrypted file that savscan can't decrypt
-          payload.result = "clean";
+          payload.malicious = false;
+          payload.result = '#can\'t decrypt';
         } else {
           logger.warn(`File scanner failed with stdout: "${stdout}" and stderr: "${stderr}"`);
           logger.warn(err);
-          payload.error = stderr || stdout;
-          payload.status = 500;
-          reject(payload);
-          return
+
+          return reject(extend({}, payload, {
+            error: new Error(stderr || stdout),
+            status: 500,
+          }));
         }
         logger.debug(`Scan result for ${payload.filename}: ${payload.malicious}`);
         delete payload.filename;
@@ -123,6 +130,13 @@ function call_sav_scan(payload) {
   })
 }
 
+/**
+ * Scan a local file
+ *
+ * @param filename
+ * @param options
+ * @returns {Promise} rejects only on out-of-spec errors.
+ */
 function scan_file(filename, options) {
   return myhash.from_filename(filename, options)
     .then(mycache.get_result)

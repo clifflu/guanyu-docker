@@ -42,19 +42,19 @@ function check_text(payload) {
 
     for (let idx = 0, len = links.length; idx < len; idx++) {
       let link = fix_uri(links[idx]);
-      scanner_promises.push(uri_scanner.scan_uri(link, payload.options || undefined));
+      scanner_promises.push(uri_scanner.scan_uri(link, payload.options));
     }
 
     Promise.all(scanner_promises).then((values) => {
-      payload = extend(payload, {
+      extend(payload, {
         malicious: false,
-        results: {}
+        results: {},
       });
 
       for (let idx = 0, len = values.length; idx < len; idx++) {
         let v = values[idx];
 
-        payload.malicious = payload.malicious || v.malicious;
+        payload.malicious = payload.malicious || (!!v.malicious);
         payload.results[v.resource] = v.result
       }
       logger.debug(`Text scan result: ${payload}`);
