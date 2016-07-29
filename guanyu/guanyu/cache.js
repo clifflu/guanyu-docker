@@ -184,8 +184,10 @@ function update_result(payload) {
     return Promise.resolve(payload);
   }
 
-  let cached_entry = extend({}, payload, {cached: true});
+  // Work on a shallow copy and strip unwanted attributes
+  let cached_entry = extend({}, payload);
   delete cached_entry['options'];
+  delete cached_entry['flags'];
 
   Promise.all([
     update_result_naive(cached_entry),
@@ -200,11 +202,11 @@ function update_result(payload) {
 
 function update_result_naive(payload) {
   logger.debug(`Updating cache (naive) ${payload.hash}`);
-  if (payload.source == 'naive') {
+  if (payload.cached == 'naive') {
     // do nothing
   } else {
     // update naive cache otherwise
-    naive_database[payload.hash] = extend({}, payload, {source: 'naive'});
+    naive_database[payload.hash] = extend({}, payload, {cached: 'naive'});
   }
 
   return Promise.resolve(payload);
@@ -217,14 +219,14 @@ function update_result_redis(payload) {
     return Promise.resolve(payload);
   }
 
-  if (payload.source == 'naive' || payload.source == 'redis') {
+  if (payload.cached == 'naive' || payload.cached == 'redis') {
     // do nothing
     return Promise.resolve(payload);
   }
 
   logger.debug(`Updating redis cache ${payload.hash}`);
   return new Promise((fulfill, reject) => {
-    redis_client.set(payload.hash, JSON.stringify(extend({}, payload, {source: 'redis'})), function (err) {
+    redis_client.set(payload.hash, JSON.stringify(extend({}, payload, {cached: 'redis'})), function (err) {
       if (err) {
         logger.error("Redis update failed ", err);
         return reject(err);
@@ -244,7 +246,7 @@ function update_result_ddb(payload) {
 
   logger.debug(`Updating ddb cache ${payload.hash}`);
 
-  if (payload.source) {
+  if (payload.cached) {
     return Promise.resolve(payload);
   }
 
@@ -252,7 +254,7 @@ function update_result_ddb(payload) {
     dynamodb.putItem({
       Item: {
         hash: {B: b64decode(payload.hash)},
-        payload: {S: JSON.stringify(extend({}, payload, {source: 'ddb'}))},
+        payload: {S: JSON.stringify(extend({}, payload, {cached: 'ddb'}))},
       },
       TableName: config.get('CACHE:DDB:TABLE'),
     }, (err) => {
