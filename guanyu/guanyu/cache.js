@@ -184,6 +184,11 @@ function update_result(payload) {
     return Promise.resolve(payload);
   }
 
+  if (payload.result.startsWith('#')) {
+    logger.info(`Skip updating cache with indeterminate results (#.*) "${payload.hash}"`);
+    return Promise.resolve(payload);
+  }
+
   // Work on a shallow copy and strip unwanted attributes
   let cached_entry = extend({}, payload);
   delete cached_entry['options'];
