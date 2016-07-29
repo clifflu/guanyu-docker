@@ -32,7 +32,7 @@ router.get('/file', (req, res) => {
 
 router.post('/file', upload.single('file'), (req, res) => {
   scanner.scan_file(
-    req.file.path,
+    req.file ? req.file.path : undefined,
     route_helper.collect_options(req)
   ).then(
     (result) => {
