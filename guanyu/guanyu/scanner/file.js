@@ -17,19 +17,26 @@ var exec = require('child_process').exec;
 var sem = require('semaphore')(sav_max_seats);
 
 
+var _savd_running;
+
 /**
  * Check SAVD status as promise
  *
  * @returns {Promise}
  */
 function check_savd_status() {
+  if (_savd_running)
+    return Promise.resolve(true);
+
   var savdstatus = "/opt/sophos-av/bin/savdstatus";
   var pattern_good = /^Sophos Anti-Virus is active /;
 
   return new Promise((fulfill) => {
     exec(savdstatus, {timeout: 1000}, (err, stdout) => {
-      if (stdout.match(pattern_good))
+      if (stdout.match(pattern_good)) {
+        _savd_running = true;
         fulfill(true);
+      }
 
       fulfill(false);
     });
@@ -40,9 +47,8 @@ function check_savd_status() {
 function ensure_savd_running(payload) {
   return new Promise((fulfill, reject) => {
     check_savd_status().then((running) => {
-      if (running || config.get('DRUNK')) {
+      if (running || config.get('DRUNK'))
         return fulfill(payload);
-      }
 
       exec('/opt/sophos-av/bin/savdctl --daemon start', {timeout: 3000}, (err) => {
         if (err) {
