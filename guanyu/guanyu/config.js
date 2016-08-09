@@ -4,27 +4,37 @@ const nconf = require('nconf');
 
 nconf.use('memory')
   .env({
-  separator: '__',
-  whitelist: [
-    'API_TOKEN',
-    'CACHE__REDIS__DISABLED',
-    'CACHE__REDIS__HOST',
-    'CACHE__DDB__DISABLED',
-    'CACHE__DDB__TABLE',
-    'DRUNK',
-    'FILE__MAX_SIZE',
-    'LOG_LEVEL',
-    'PROC_PER_CORE',
-    'REDIS_HOST',
-    'UTOPIA',
-  ],
-}).defaults({
-  // Max file size allowed
+    separator: '__',
+    whitelist: [
+      'API_TOKEN',
+      'CACHE__REDIS__DISABLED',
+      'CACHE__REDIS__HOST',
+      'CACHE__DDB__DISABLED',
+      'CACHE__DDB__TABLE',
+      'CONN__RATIO',
+      'DRUNK',
+      'FETCH__PER_CORE',
+      'FILE__MAX_SIZE',
+      'LOG_LEVEL',
+      'SCAN__RETRIES',
+      'SCAN__PER_CORE',
+    ],
+  }).defaults({
+  CONN: {
+    RATIO: 2,
+  },
+  FETCH: {
+    PER_CORE: 6,
+  },
   FILE: {
+    // Max file size allowed
     MAX_SIZE: 33554432
   },
-  // Concurrent scanners (sav) allowed per core
-  PROC_PER_CORE: 2,
+  SCAN: {
+    // Concurrent scanners (sav) allowed per core
+    PER_CORE: 2,
+    RETRIES: 3,
+  }
 });
 
 
@@ -75,10 +85,10 @@ function harvest_api_tokens(api_token) {
     : Array.from(tokens);
 }
 
-bridge_deprecated_to('REDIS_HOST', 'CACHE:REDIS:HOST');
-bridge_deprecated_to('UTOPIA', 'DRUNK');
+update_number('CONN__RATIO');
+update_number('FETCH__PER_CORE');
+update_number('SCAN__PER_CORE');
 
-update_number('PROC_PER_CORE');
 update_boolean('DRUNK');
 
 nconf.set('api-tokens', harvest_api_tokens(nconf.get('API_TOKEN')));

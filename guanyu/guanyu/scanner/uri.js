@@ -6,13 +6,13 @@ var request = require('request');
 var tmp = require('tmp');
 var url = require('url');
 
+var config = require('../config');
 var file_scanner = require('./file.js');
 var logger = require('../logger');
 var mycache = require('../cache');
 var myhash = require("../hash");
 
-var file_max_size = require('../config').get('FILE:MAX_SIZE');
-
+var sem = require('../sem').fetch;
 
 var host_whitelist = [
   '104.com.tw',
@@ -140,38 +140,42 @@ function _fetch_uri(payload) {
         }));
       }
 
-      var fetched_size = 0;
-      var res = request({url: payload.resource});
+      sem.take(() => {
+        var fetched_size = 0;
+        var res = request({url: payload.resource});
 
-      res
-        .on('data', (data) => {
-          fetched_size += data.length;
-          if (fetched_size > file_max_size) {
-            res.abort();
-            fs.unlink(name);
-            payload = extend(payload, {
-              status: 413,
-              message: "Resource too large",
-              error: new Error(`Fetched size "${fetched_size}" exceeds limit "${file_max_size}"`)
-            });
-            return reject(payload)
-          }
-        })
-        .pipe(fs.createWriteStream(name))
-        .on('finish', () => {
-          payload.filename = name;
-          logger.debug(`Saved locally ${payload.filename}`);
-          fulfill(payload);
-        })
-        .on('error', (err) => {
-          // Fetch failed
-
-          reject(extend(payload, {
-            status: "400",
-            message: "fetch failed",
-            error: err,
-          }));
-        });
+        res
+          .on('data', (data) => {
+            fetched_size += data.length;
+            if (fetched_size > file_max_size) {
+              sem.leave();
+              res.abort();
+              fs.unlink(name);
+              payload = extend(payload, {
+                status: 413,
+                message: "Resource too large",
+                error: new Error(`Fetched size "${fetched_size}" exceeds limit "${file_max_size}"`)
+              });
+              return reject(payload)
+            }
+          })
+          .pipe(fs.createWriteStream(name))
+          .on('finish', () => {
+            sem.leave();
+            payload.filename = name;
+            logger.debug(`Saved locally ${payload.filename}`);
+            fulfill(payload);
+          })
+          .on('error', (err) => {
+            // Fetch failed
+            sem.leave();
+            reject(extend(payload, {
+              status: "400",
+              message: "fetch failed",
+              error: err,
+            }));
+          });
+      });
     });
   });
 }
