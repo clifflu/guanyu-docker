@@ -78,7 +78,7 @@ function fetch_uri(payload) {
   if (fall_with_upstream)
     return _fetch_uri(payload);
 
-  return _fetch_uri(payload).catch(function(payload) {
+  return _fetch_uri(payload).catch(function (payload) {
     extend(payload, {
       malicious: false,
       result: `#${payload.message}`,
@@ -113,7 +113,6 @@ function _fetch_uri(payload) {
   }
 
   return new Promise((fulfill, reject) => {
-
     var name = tmp.tmpNameSync({template: '/tmp/guanyu-XXXXXXXX'});
     logger.debug(`Fetching "${payload.resource}" to "${name}"`);
 
@@ -192,5 +191,5 @@ function scan_uri(uri, options) {
 }
 
 module.exports = {
-  scan_uri: scan_uri
+  scan_uri: scan_uri,
 };

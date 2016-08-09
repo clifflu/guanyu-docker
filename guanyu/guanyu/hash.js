@@ -1,3 +1,4 @@
+'use strict';
 /**
  *
  * Payload structure:
@@ -40,19 +41,18 @@
  *  }
  *
  */
-"use strict";
 
-var crypto = require('crypto');
-var extend = require('extend');
-var fs = require('fs');
+const crypto = require('crypto');
+const extend = require('extend');
+const fs = require('fs');
 
-var logger = require('./logger');
-var version = require('./version');
+const logger = require('./logger');
+const version = require('./version');
 
 
 function from_string(string, options) {
-  var shasum = crypto.createHash('sha256');
-  var reply = {
+  let shasum = crypto.createHash('sha256');
+  let reply = {
     malicious: false,
     options: options,
     resource: string,
@@ -69,8 +69,8 @@ function from_string(string, options) {
 }
 
 function from_filename(filename, options) {
-  var shasum = crypto.createHash('sha256');
-  var reply = {
+  let shasum = crypto.createHash('sha256');
+  let reply = {
     filename: filename,
     malicious: false,
     options: options,
@@ -81,7 +81,7 @@ function from_filename(filename, options) {
   logger.debug(`Creating hash from ${filename}`);
 
   return new Promise((fulfill, reject) => {
-    var s = fs.ReadStream(filename);
+    let s = fs.ReadStream(filename);
     try {
       s.on('data', (d) => {
         shasum.update(d)

@@ -1,15 +1,17 @@
-"use strict";
+'use strict';
 
-var express = require('express');
-var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var bodyParser = require('body-parser');
+const express = require('express');
+const path = require('path');
+const favicon = require('serve-favicon');
+const logger = require('morgan');
+const bodyParser = require('body-parser');
 
-var config = require('./guanyu/config');
+const config = require('./guanyu/config');
+const file_max_size = config.get('FILE:MAX_SIZE');
+const conn_max_sockets = require('./guanyu/sem').seats.conn;
 
-var app = express();
-var file_max_size = config.get('FILE:MAX_SIZE');
+const app = express();
+app.maxSockets = conn_max_sockets;
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -18,8 +20,10 @@ app.set('view engine', 'jade');
 // uncomment after placing your favicon in /public
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
+
 app.use(bodyParser.json({limit: file_max_size}));
 app.use(bodyParser.urlencoded({limit: file_max_size, extended: false}));
+
 // app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -28,7 +32,7 @@ app.use((req, res, next) => {
   if (req.method == 'POST' && tokens) {
     let token_set = new Set(tokens);
     if (!token_set.has(req.headers['api-token'])) {
-      var err = new Error('Forbidden');
+      let err = new Error('Forbidden');
       err.status = 403;
 
       return next(err);

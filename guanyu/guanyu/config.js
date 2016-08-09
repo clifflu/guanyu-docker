@@ -1,6 +1,6 @@
 'use strict';
 
-var nconf = require('nconf');
+const nconf = require('nconf');
 
 nconf.use('memory')
   .env({
@@ -29,7 +29,7 @@ nconf.use('memory')
 
 
 function bridge_deprecated_to(was, now) {
-  var old_value = nconf.get(was);
+  let old_value = nconf.get(was);
   if (old_value && !nconf.get(now)) {
     nconf.set(now, old_value);
     console.log(`[DEPRECATED] ${was} has been deprecated, use ${now} instead`);
@@ -37,8 +37,8 @@ function bridge_deprecated_to(was, now) {
 }
 
 function update_boolean(name) {
-  var value = nconf.get(name);
-  var as_number = Number(value);
+  let value = nconf.get(name);
+  let as_number = Number(value);
 
   if (Number.isNaN(as_number)) {
     if (/^false$/i.test(value))
@@ -51,16 +51,16 @@ function update_boolean(name) {
 }
 
 function update_number(name) {
-  var value = nconf.get(name);
-  var as_number = Number(value);
+  let value = nconf.get(name);
+  let as_number = Number(value);
 
   if (!Number.isNaN(as_number)) {
     nconf.set(name, as_number);
   }
 }
 
-function harvest_api_tokens(api_token){
-  var tokens = new Set();
+function harvest_api_tokens(api_token) {
+  let tokens = new Set();
 
   if (api_token) {
     api_token.split(',').map((token) => {

@@ -1,15 +1,15 @@
-"use strict";
+'use strict';
 
-var extend = require('extend');
-var fs = require('fs');
+const extend = require('extend');
+const fs = require('fs');
 
-var logger = require('../logger');
-var route_helper = require('../helper/route');
-var scanner = require('../scanner');
+const logger = require('../logger');
+const route_helper = require('../helper/route');
+const scanner = require('../scanner');
 
-var file_max_size = require('../config').get('FILE:MAX_SIZE');
-var router = require('express').Router();
-var upload = require('multer')({limits: {fileSize: file_max_size}, dest: '/tmp/'});
+const file_max_size = require('../config').get('FILE:MAX_SIZE');
+const router = require('express').Router();
+const upload = require('multer')({limits: {fileSize: file_max_size}, dest: '/tmp/'});
 
 
 function handle_err(res, err) {

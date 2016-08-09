@@ -1,14 +1,14 @@
-"use strict";
+'use strict';
 
-var assert = require('assert');
-var extend = require('extend');
-var fs = require('fs');
-var os = require('os');
+const assert = require('assert');
+const extend = require('extend');
+const fs = require('fs');
+const os = require('os');
 
-var config = require("../config");
-var logger = require('../logger');
-var mycache = require('../cache');
-var myhash = require("../hash");
+const config = require("../config");
+const logger = require('../logger');
+const mycache = require('../cache');
+const myhash = require("../hash");
 
 var cpu_count = os.cpus().length;
 var sav_max_seats = require('../config').get('PROC_PER_CORE') * cpu_count;
@@ -154,6 +154,5 @@ function scan_file(filename, options) {
 module.exports = {
   call_sav_scan: call_sav_scan,
   check_savd_status: check_savd_status,
-  sav_max_seats: sav_max_seats,
   scan_file: scan_file,
 };

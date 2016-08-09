@@ -1,4 +1,6 @@
-var AWS = require('aws-sdk');
+'use strict';
+
+const AWS = require('aws-sdk');
 
 process.env.AWS_PROFILE = process.env.AWS_PROFILE ||  process.env.AWS_DEFAULT_PROFILE;
 

@@ -1,34 +1,36 @@
-var winston = require('winston');
+'use strict';
 
-var config = require('./config');
+const winston = require('winston');
 
-var log_level = {
+const config = require('./config');
+
+const hellomsg = "Guanyu at your service...";
+const hellomsg_drunk = `[DRUNK] ${hellomsg} (HIC ..ooOO)`;
+
+const log_level = Object.freeze({
   default: 'info',
   candidates: new Set(['debug', 'info', 'verbose', 'warn'])
-};
+});
 
-var logger = new (winston.Logger)({
+const logger = new (winston.Logger)({
   level: log_level.candidates.has(config.get('LOG_LEVEL'))
     ? config.get('LOG_LEVEL')
     : log_level.default,
   transports: [
     new (winston.transports.Console)({
-      timestamp: function() {
+      timestamp: function () {
         return (new Date().toISOString()).replace(/\..+/, '');
       },
-      formatter: function(options) {
+      formatter: function (options) {
         // Return string will be passed to logger.
-        return options.timestamp() +' '+ options.level.toUpperCase() +' - '+ (undefined !== options.message ? options.message : '') +
-          (options.meta && Object.keys(options.meta).length ? '\n\t'+ JSON.stringify(options.meta) : '' );
+        return options.timestamp() + ' ' + options.level.toUpperCase() + ' - ' + (undefined !== options.message ? options.message : '') +
+          (options.meta && Object.keys(options.meta).length ? '\n\t' + JSON.stringify(options.meta) : '' );
       }
     })
   ]
 });
 
-var hellomsg = "Guanyu at your service...";
-if (config.get('DRUNK')) {
-  hellomsg = "[DRUNK] " + hellomsg + " (HIC ..ooOO)";
-}
-logger.info(hellomsg);
+
+logger.info(config.get('DRUNK') ? hellomsg_drunk : hellomsg);
 
 module.exports = logger;
