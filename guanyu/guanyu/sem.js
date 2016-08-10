@@ -1,5 +1,6 @@
 'use strict';
 
+const os = require('os');
 const sem = require('semaphore');
 
 const config = require('./config');
