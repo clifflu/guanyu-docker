@@ -1,20 +1,22 @@
-"use strict";
+'use strict';
 
-var extend = require('extend');
-var fs = require('fs');
-var request = require('request');
-var tmp = require('tmp');
-var url = require('url');
+const extend = require('extend');
+const fs = require('fs');
+const request = require('request');
+const tmp = require('tmp');
+const url = require('url');
 
-var config = require('../config');
-var file_scanner = require('./file.js');
-var logger = require('../logger');
-var mycache = require('../cache');
-var myhash = require("../hash");
+const config = require('../config');
+const file_scanner = require('./file.js');
+const logger = require('../logger');
+const mycache = require('../cache');
+const myhash = require("../hash");
 
-var sem = require('../sem').fetch;
+const file_max_size = config.get('FILE:MAX_SIZE');
+const sem = require('../sem').fetch;
 
-var host_whitelist = [
+
+const host_whitelist = [
   '104.com.tw',
   'asu5.com',
   'asus.com',
@@ -41,7 +43,7 @@ var host_whitelist = [
 
 
 function shortcut_host_whitelist(payload) {
-  var uri = url.parse(payload.resource);
+  let uri = url.parse(payload.resource);
 
   if (!uri.host) {
     logger.info(`Failed parsing uri: ${payload.resource}`);
@@ -73,7 +75,7 @@ function shortcut_host_whitelist(payload) {
  * @returns {Promise}
  */
 function fetch_uri(payload) {
-  var fall_with_upstream = payload.options && payload.options.fall_with_upstream;
+  let fall_with_upstream = payload.options && payload.options.fall_with_upstream;
 
   if (fall_with_upstream)
     return _fetch_uri(payload);
@@ -113,7 +115,7 @@ function _fetch_uri(payload) {
   }
 
   return new Promise((fulfill, reject) => {
-    var name = tmp.tmpNameSync({template: '/tmp/guanyu-XXXXXXXX'});
+    let name = tmp.tmpNameSync({template: '/tmp/guanyu-XXXXXXXX'});
     logger.debug(`Fetching "${payload.resource}" to "${name}"`);
 
     request({method: "HEAD", url: payload.resource}, (err, headRes) => {
@@ -131,7 +133,7 @@ function _fetch_uri(payload) {
         }))
       }
 
-      var size = headRes.headers['content-length'];
+      let size = headRes.headers['content-length'];
       if (size > file_max_size) {
         return reject(extend(payload, {
           status: 413,
@@ -141,8 +143,8 @@ function _fetch_uri(payload) {
       }
 
       sem.take(() => {
-        var fetched_size = 0;
-        var res = request({url: payload.resource});
+        let fetched_size = 0;
+        let res = request({url: payload.resource});
 
         res
           .on('data', (data) => {
