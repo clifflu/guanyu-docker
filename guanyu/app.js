@@ -8,10 +8,7 @@ const bodyParser = require('body-parser');
 
 const config = require('./guanyu/config');
 const file_max_size = config.get('FILE:MAX_SIZE');
-const conn_max_sockets = require('./guanyu/sem').seats.conn;
-
 const app = express();
-app.maxSockets = conn_max_sockets;
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
