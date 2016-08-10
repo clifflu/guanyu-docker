@@ -3,6 +3,7 @@
 const extend = require('extend');
 const fs = require('fs');
 
+const config = require('../config');
 const logger = require('../logger');
 const route_helper = require('../helper/route');
 const scanner = require('../scanner');
@@ -10,7 +11,6 @@ const scanner = require('../scanner');
 const file_max_size = require('../config').get('FILE:MAX_SIZE');
 const router = require('express').Router();
 const upload = require('multer')({limits: {fileSize: file_max_size}, dest: '/tmp/'});
-
 
 function handle_err(response) {
   return (err) => {
