@@ -26,6 +26,15 @@ function fix_uri(resource) {
   return resource
 }
 
+function fulfilled(promise) {
+  return promise.then(
+    (x) => Promise.resolve(x),
+    (e) => Promise.resolve({
+      malicious: false,
+      result: e.message,
+    }));
+}
+
 
 function check_text(payload) {
   if (payload.result) {
@@ -42,7 +51,7 @@ function check_text(payload) {
 
     for (let idx = 0, len = links.length; idx < len; idx++) {
       let link = fix_uri(links[idx]);
-      scanner_promises.push(uri_scanner.scan_uri(link, payload.options));
+      scanner_promises.push(fulfilled(uri_scanner.scan_uri(link, payload.options)));
     }
 
     Promise.all(scanner_promises).then((values) => {
@@ -60,7 +69,6 @@ function check_text(payload) {
       logger.debug(`Text scan result: ${payload}`);
       fulfill(payload);
     }, reject)
-
   });
 }
 

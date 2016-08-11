@@ -61,24 +61,8 @@ function ensure_savd_running(payload) {
   });
 }
 
-/**
- * Scans `payload.filename` with Sophos.
- *
- * Resolve with standard payload defined in cache.js hydrated with following attributes: {
- *  malicious: bool,
- *  result: scan result (virus name | empty string) or error
- * }
- *
- * @param payload
- * @returns Promise
- */
+
 function call_sav_scan(payload) {
-  var sav = "/opt/sophos-av/bin/savscan";
-  var sav_opt = "-archive -ndi -ss";
-  var ptrn = / Virus '(.+)' found in file /;
-  var match;
-
-
   if (payload.result || !payload.filename) {
     logger.debug("Skip sav scan for result or !filename");
     return Promise.resolve(payload);
@@ -93,58 +77,70 @@ function call_sav_scan(payload) {
 
   logger.debug(`Scanning (sophos) ${payload.filename}`);
 
+  return call_sav_scan_once(payload)
+    .catch(call_sav_scan_once)
+    .catch(call_sav_scan_once)
+}
+
+/**
+ * Scans `payload.filename` with Sophos.
+ *
+ * Resolve with standard payload defined in cache.js hydrated with following attributes: {
+ *  malicious: bool,
+ *  result: scan result (virus name | empty string) or error
+ * }
+ *
+ * @param payload
+ * @returns Promise
+ */
+function call_sav_scan_once(payload) {
+  var sav = "/opt/sophos-av/bin/savscan";
+  var sav_opt = "-archive -ndi -ss";
+  var ptrn = / Virus '(.+)' found in file /;
+  var match;
+
   return new Promise((fulfill, reject) => {
-    for (let retry = 0; retry < config.get('SCAN:RETRIES'); retry++) {
-      sem.take(() => {
-        let determined = false;
+    sem.take(() => {
+      exec(`${sav} ${sav_opt} "${payload.filename}"`, {timeout: 30000}, (err, stdout, stderr) => {
+        sem.leave();
 
-        exec(`${sav} ${sav_opt} "${payload.filename}"`, {timeout: 30000}, (err, stdout, stderr) => {
-          sem.leave();
+        logger.debug(`Savscan: stdout: ${stdout}\nstderr: ${stderr}`);
 
-          if (match = stdout.match(ptrn)) {
-            assert(err.code == 3);
-            payload.malicious = true;
-            payload.result = match[1];
-            determined = true;
-          } else if (stderr == '' && !err) {
-            // No output and return 0 if negative
-            payload.malicious = false;
-            payload.result = "clean";
-            determined = true;
-          } else if (err && err.code == 2) {
-            // Encrypted file that savscan can't decrypt
-            payload.malicious = false;
-            payload.result = '#can\'t decrypt';
-            determined = true;
-          } else {
-            logger.warn(`File scanner failed with stdout: "${stdout}" and stderr: "${stderr}"`);
-            logger.warn(err);
-          }
+        if (match = stdout.match(ptrn)) {
+          assert(err.code == 3);
+          payload.malicious = true;
+          payload.result = match[1];
+        } else if (stderr == '' && !err) {
+          // No output and return 0 if negative
+          payload.malicious = false;
+          payload.result = "clean";
+        } else if (err && err.code == 2) {
+          // Encrypted file that savscan can't decrypt
+          payload.malicious = false;
+          payload.result = '#can\'t decrypt';
+        } else {
+          logger.warn(`File scanner failed with stdout: "${stdout}" and stderr: "${stderr}"`);
+          logger.warn(err);
 
-          if (determined) {
-            logger.debug(`Deleting "${payload.filename}"`);
+          return reject(extend({}, payload, {
+            error: new Error(stderr || stdout),
+            status: 500,
+          }));
+        }
 
-            try {
-              fs.unlink(payload.filename);
-            } catch (ex) {
-              logger.warn(`FS cleanup "${payload.filename}" failed, err = ${ex}`)
-            }
+        logger.debug(`Deleting "${payload.filename}"`);
 
-            logger.debug(`Scan result for ${payload.filename}: ${payload.malicious}`);
-            delete payload.filename;
-            return fulfill(payload);
-          }
-        });
+        try {
+          fs.unlink(payload.filename);
+        } catch (ex) {
+          logger.warn(`FS cleanup "${payload.filename}" failed, err = ${ex}`)
+        }
+
+        logger.debug(`Scan result for ${payload.filename}: ${payload.malicious}`);
+        delete payload.filename;
+        return fulfill(payload);
       });
-    }
-
-    // Run out of retries
-    logger.warn(`File scanner ran out of retries`);
-
-    return reject(extend({}, payload, {
-      error: new Error(stderr || stdout),
-      status: 500,
-    }));
+    });
   })
 }
 

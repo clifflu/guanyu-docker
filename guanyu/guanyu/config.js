@@ -17,7 +17,6 @@ nconf.use('memory')
       'FETCH__PER_CORE',
       'FILE__MAX_SIZE',
       'LOG_LEVEL',
-      'SCAN__RETRIES',
       'SCAN__PER_CORE',
     ],
   }).defaults({
@@ -35,7 +34,6 @@ nconf.use('memory')
   SCAN: {
     // Concurrent scanners (sav) allowed per core
     PER_CORE: 2,
-    RETRIES: 3,
   }
 });
 
