@@ -1,25 +1,36 @@
-"use strict";
+'use strict';
 
-var extend = require('extend');
-var fs = require('fs');
+const extend = require('extend');
+const fs = require('fs');
 
-var logger = require('../logger');
-var route_helper = require('../helper/route');
-var scanner = require('../scanner');
+const config = require('../config');
+const logger = require('../logger');
+const route_helper = require('../helper/route');
+const scanner = require('../scanner');
 
-var file_max_size = require('../config').get('FILE:MAX_SIZE');
-var router = require('express').Router();
-var upload = require('multer')({limits: {fileSize: file_max_size}, dest: '/tmp/'});
+const file_max_size = require('../config').get('FILE:MAX_SIZE');
+const router = require('express').Router();
+const upload = require('multer')({limits: {fileSize: file_max_size}, dest: '/tmp/'});
 
+function handle_err(response) {
+  return (err) => {
+    logger.warn(err);
+    response.status(err.status || 500).render("error", {
+      message: err.message || "Oops, something bad happened.",
+      error: err
+    });
 
-function handle_err(res, err) {
-  logger.warn(err);
-  res.status(err.status || 500).render("error", {
-    message: err.message || "Oops, something bad happened.",
-    error: err
-  });
+    return Promise.resolve(err);
+  }
 }
 
+function handle_result(response) {
+  return (result) => {
+    logger.info(result);
+    response.send(result);
+    return Promise.resolve(result);
+  }
+}
 
 
 router.get('/', (req, res) => {
@@ -34,13 +45,7 @@ router.post('/file', upload.single('file'), (req, res) => {
   scanner.scan_file(
     req.file ? req.file.path : undefined,
     route_helper.collect_options(req)
-  ).then(
-    (result) => {
-      logger.info(result);
-      res.send(result);
-    }, (err) => {
-      handle_err(res, err);
-    });
+  ).then(handle_result(res), handle_err(res));
 });
 
 
@@ -52,13 +57,7 @@ router.post('/uri', (req, res) => {
   scanner.scan_uri(
     req.body.uri,
     route_helper.collect_options(req)
-  ).then(
-    (result) => {
-      logger.info(result);
-      res.send(result);
-    }, (err) => {
-      return handle_err(res, err);
-    });
+  ).then(handle_result(res), handle_err(res));
 });
 
 
@@ -70,13 +69,7 @@ router.post('/text', (req, res) => {
   scanner.scan_text(
     req.body.text,
     route_helper.collect_options(req)
-  ).then(
-    (result) => {
-      logger.info(result);
-      res.send(result);
-    }, (err) => {
-      return handle_err(res, err);
-    });
+  ).then(handle_result(res), handle_err(res));
 });
 
 module.exports = router;

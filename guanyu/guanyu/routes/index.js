@@ -1,11 +1,11 @@
-"use strict";
+'use strict';
 
-var express = require('express');
-var extend = require('extend');
-var router = express.Router();
+const express = require('express');
+const extend = require('extend');
+const router = express.Router();
 
-var file_scanner = require('../scanner/file');
-var route_helper = require('../helper/route');
+const file_scanner = require('../scanner/file');
+const route_helper = require('../helper/route');
 
 
 /* GET home page. */

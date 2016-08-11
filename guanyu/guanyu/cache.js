@@ -1,17 +1,17 @@
-"use strict";
+'use strict';
 
-var extend = require('extend');
-var redis = require("redis");
+const extend = require('extend');
+const redis = require("redis");
 
-var AWS = require('./aws');
-var config = require('./config');
-var logger = require('./logger');
+const AWS = require('./aws');
+const config = require('./config');
+const logger = require('./logger');
 
-var naive_database = {};
+const naive_database = {};
 
-var get_redis_client = (() => {
-  var _cache;
-  var conf = config.get('CACHE:REDIS');
+const get_redis_client = (() => {
+  let _cache;
+  let conf = config.get('CACHE:REDIS');
 
   return () => {
     if (_cache === undefined) {
@@ -25,9 +25,9 @@ var get_redis_client = (() => {
 })();
 
 
-var get_ddb_client = (() => {
-  var _cache;
-  var conf = config.get('CACHE:DDB');
+const get_ddb_client = (() => {
+  let _cache;
+  let conf = config.get('CACHE:DDB');
 
   return () => {
     if (_cache === undefined) {
@@ -94,7 +94,7 @@ function get_result_redis(payload) {
     return Promise.resolve(payload);
   }
 
-  var redis_client = get_redis_client();
+  let redis_client = get_redis_client();
 
   if (!redis_client) {
     return Promise.resolve(payload);
@@ -131,7 +131,7 @@ function get_result_ddb(payload) {
     return Promise.resolve(payload);
   }
 
-  var dynamodb = get_ddb_client();
+  let dynamodb = get_ddb_client();
 
   if (!dynamodb) {
     return Promise.resolve(payload);
@@ -221,7 +221,7 @@ function update_result_naive(payload) {
 }
 
 function update_result_redis(payload) {
-  var redis_client = get_redis_client();
+  let redis_client = get_redis_client();
 
   if (!redis_client) {
     return Promise.resolve(payload);
@@ -246,7 +246,7 @@ function update_result_redis(payload) {
 }
 
 function update_result_ddb(payload) {
-  var dynamodb = get_ddb_client();
+  let dynamodb = get_ddb_client();
 
   if (!dynamodb) {
     return Promise.resolve(payload);

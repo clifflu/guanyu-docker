@@ -1,35 +1,45 @@
 'use strict';
 
-var nconf = require('nconf');
+const nconf = require('nconf');
 
 nconf.use('memory')
   .env({
-  separator: '__',
-  whitelist: [
-    'API_TOKEN',
-    'CACHE__REDIS__DISABLED',
-    'CACHE__REDIS__HOST',
-    'CACHE__DDB__DISABLED',
-    'CACHE__DDB__TABLE',
-    'DRUNK',
-    'FILE__MAX_SIZE',
-    'LOG_LEVEL',
-    'PROC_PER_CORE',
-    'REDIS_HOST',
-    'UTOPIA',
-  ],
-}).defaults({
-  // Max file size allowed
+    separator: '__',
+    whitelist: [
+      'API_TOKEN',
+      'CACHE__REDIS__DISABLED',
+      'CACHE__REDIS__HOST',
+      'CACHE__DDB__DISABLED',
+      'CACHE__DDB__TABLE',
+      'CONN__HOLD_DELAY',
+      'CONN__RATIO',
+      'DRUNK',
+      'FETCH__PER_CORE',
+      'FILE__MAX_SIZE',
+      'LOG_LEVEL',
+      'SCAN__PER_CORE',
+    ],
+  }).defaults({
+  CONN: {
+    CONN__HOLD_DELAY: 1000,
+    RATIO: 2,
+  },
+  FETCH: {
+    PER_CORE: 6,
+  },
   FILE: {
+    // Max file size allowed
     MAX_SIZE: 33554432
   },
-  // Concurrent scanners (sav) allowed per core
-  PROC_PER_CORE: 2,
+  SCAN: {
+    // Concurrent scanners (sav) allowed per core
+    PER_CORE: 2,
+  }
 });
 
 
 function bridge_deprecated_to(was, now) {
-  var old_value = nconf.get(was);
+  let old_value = nconf.get(was);
   if (old_value && !nconf.get(now)) {
     nconf.set(now, old_value);
     console.log(`[DEPRECATED] ${was} has been deprecated, use ${now} instead`);
@@ -37,8 +47,8 @@ function bridge_deprecated_to(was, now) {
 }
 
 function update_boolean(name) {
-  var value = nconf.get(name);
-  var as_number = Number(value);
+  let value = nconf.get(name);
+  let as_number = Number(value);
 
   if (Number.isNaN(as_number)) {
     if (/^false$/i.test(value))
@@ -51,16 +61,16 @@ function update_boolean(name) {
 }
 
 function update_number(name) {
-  var value = nconf.get(name);
-  var as_number = Number(value);
+  let value = nconf.get(name);
+  let as_number = Number(value);
 
   if (!Number.isNaN(as_number)) {
     nconf.set(name, as_number);
   }
 }
 
-function harvest_api_tokens(api_token){
-  var tokens = new Set();
+function harvest_api_tokens(api_token) {
+  let tokens = new Set();
 
   if (api_token) {
     api_token.split(',').map((token) => {
@@ -75,10 +85,10 @@ function harvest_api_tokens(api_token){
     : Array.from(tokens);
 }
 
-bridge_deprecated_to('REDIS_HOST', 'CACHE:REDIS:HOST');
-bridge_deprecated_to('UTOPIA', 'DRUNK');
+update_number('CONN__RATIO');
+update_number('FETCH__PER_CORE');
+update_number('SCAN__PER_CORE');
 
-update_number('PROC_PER_CORE');
 update_boolean('DRUNK');
 
 nconf.set('api-tokens', harvest_api_tokens(nconf.get('API_TOKEN')));

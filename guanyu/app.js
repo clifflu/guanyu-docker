@@ -1,15 +1,19 @@
-"use strict";
+'use strict';
 
-var express = require('express');
-var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var bodyParser = require('body-parser');
+const express = require('express');
+const path = require('path');
+const favicon = require('serve-favicon');
+const logger = require('morgan');
+const bodyParser = require('body-parser');
 
-var config = require('./guanyu/config');
+const config = require('./guanyu/config');
+const http_error = require('./guanyu/httperror');
 
-var app = express();
-var file_max_size = config.get('FILE:MAX_SIZE');
+const file_max_size = config.get('FILE:MAX_SIZE');
+const max_conn = require('./guanyu/sem').seats.conn;
+
+const app = express();
+
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -18,8 +22,10 @@ app.set('view engine', 'jade');
 // uncomment after placing your favicon in /public
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
+
 app.use(bodyParser.json({limit: file_max_size}));
 app.use(bodyParser.urlencoded({limit: file_max_size, extended: false}));
+
 // app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -28,14 +34,31 @@ app.use((req, res, next) => {
   if (req.method == 'POST' && tokens) {
     let token_set = new Set(tokens);
     if (!token_set.has(req.headers['api-token'])) {
-      var err = new Error('Forbidden');
-      err.status = 403;
-
-      return next(err);
+      return next(http_error.FORBIDDEN);
     }
   }
 
   next();
+});
+
+let live_connections = 0;
+
+app.use((req, res, next) => {
+  function hungUp() {
+    res.removeListener('finish', hungUp);
+    res.removeListener('close', hungUp);
+
+    --live_connections;
+  }
+
+  if (live_connections > max_conn) {
+    setTimeout(() => {
+      next(http_error.TOO_MANY_REQUESTS);
+    }, config.get('CONN:HOLD_DELAY'));
+  } else {
+    ++live_connections;
+    next();
+  }
 });
 
 app.use('/', require('./guanyu/routes/index'));
@@ -43,9 +66,7 @@ app.use('/scan', require('./guanyu/routes/scan'));
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
+  next(http_error.NOT_FOUND);
 });
 
 // error handlers

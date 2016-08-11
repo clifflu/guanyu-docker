@@ -1,48 +1,46 @@
-"use strict";
+'use strict';
 
-var assert = require('assert');
-var extend = require('extend');
-var fs = require('fs');
-var os = require('os');
+const assert = require('assert');
+const extend = require('extend');
+const fs = require('fs');
+const os = require('os');
 
-var config = require("../config");
-var logger = require('../logger');
-var mycache = require('../cache');
-var myhash = require("../hash");
+const config = require("../config");
+const logger = require('../logger');
+const mycache = require('../cache');
+const myhash = require("../hash");
 
-var cpu_count = os.cpus().length;
-var sav_max_seats = require('../config').get('PROC_PER_CORE') * cpu_count;
+const exec = require('child_process').exec;
+const sem = require('../sem').sav;
 
-var exec = require('child_process').exec;
-var sem = require('semaphore')(sav_max_seats);
-
-
-var _savd_running;
 
 /**
  * Check SAVD status as promise
  *
  * @returns {Promise}
  */
-function check_savd_status() {
-  if (_savd_running)
-    return Promise.resolve(true);
+const check_savd_status = (() => {
+  var _savd_running;
 
-  var savdstatus = "/opt/sophos-av/bin/savdstatus";
-  var pattern_good = /^Sophos Anti-Virus is active /;
+  return () => {
+    if (_savd_running !== undefined)
+      return Promise.resolve(_savd_running);
 
-  return new Promise((fulfill) => {
-    exec(savdstatus, {timeout: 1000}, (err, stdout) => {
-      if (stdout.match(pattern_good)) {
-        _savd_running = true;
-        fulfill(true);
-      }
+    var savdstatus = "/opt/sophos-av/bin/savdstatus";
+    var pattern_good = /^Sophos Anti-Virus is active /;
 
-      fulfill(false);
+    return new Promise((fulfill) => {
+      exec(savdstatus, {timeout: 1000}, (err, stdout) => {
+        if (stdout.match(pattern_good)) {
+          _savd_running = true;
+          return fulfill(true);
+        }
+        _savd_running = false;
+        fulfill(false);
+      });
     });
-  });
-}
-
+  }
+})();
 
 function ensure_savd_running(payload) {
   return new Promise((fulfill, reject) => {
@@ -63,24 +61,8 @@ function ensure_savd_running(payload) {
   });
 }
 
-/**
- * Scans `payload.filename` with Sophos.
- *
- * Resolve with standard payload defined in cache.js hydrated with following attributes: {
- *  malicious: bool,
- *  result: scan result (virus name | empty string) or error
- * }
- *
- * @param payload
- * @returns Promise
- */
+
 function call_sav_scan(payload) {
-  var sav = "/opt/sophos-av/bin/savscan";
-  var sav_opt = "-archive -ndi -ss";
-  var ptrn = / Virus '(.+)' found in file /;
-  var match;
-
-
   if (payload.result || !payload.filename) {
     logger.debug("Skip sav scan for result or !filename");
     return Promise.resolve(payload);
@@ -95,22 +77,39 @@ function call_sav_scan(payload) {
 
   logger.debug(`Scanning (sophos) ${payload.filename}`);
 
+  return call_sav_scan_once(payload)
+    .catch(call_sav_scan_once)
+    .catch(call_sav_scan_once)
+}
+
+/**
+ * Scans `payload.filename` with Sophos.
+ *
+ * Resolve with standard payload defined in cache.js hydrated with following attributes: {
+ *  malicious: bool,
+ *  result: scan result (virus name | empty string) or error
+ * }
+ *
+ * @param payload
+ * @returns Promise
+ */
+function call_sav_scan_once(payload) {
+  var sav = "/opt/sophos-av/bin/savscan";
+  var sav_opt = "-archive -ndi -ss";
+  var ptrn = / Virus '(.+)' found in file /;
+  var match;
+
   return new Promise((fulfill, reject) => {
     sem.take(() => {
       exec(`${sav} ${sav_opt} "${payload.filename}"`, {timeout: 30000}, (err, stdout, stderr) => {
         sem.leave();
 
-        logger.debug(`Deleting "${payload.filename}"`);
-        try {
-          fs.unlink(payload.filename);
-        } catch (ex) {
-          logger.warn(`FS cleanup "${payload.filename}" failed, err = ${ex}`)
-        }
+        logger.debug(`Savscan: stdout: ${stdout}\nstderr: ${stderr}`);
 
         if (match = stdout.match(ptrn)) {
           assert(err.code == 3);
           payload.malicious = true;
-          payload.result = match[1]
+          payload.result = match[1];
         } else if (stderr == '' && !err) {
           // No output and return 0 if negative
           payload.malicious = false;
@@ -128,9 +127,18 @@ function call_sav_scan(payload) {
             status: 500,
           }));
         }
+
+        logger.debug(`Deleting "${payload.filename}"`);
+
+        try {
+          fs.unlink(payload.filename);
+        } catch (ex) {
+          logger.warn(`FS cleanup "${payload.filename}" failed, err = ${ex}`)
+        }
+
         logger.debug(`Scan result for ${payload.filename}: ${payload.malicious}`);
         delete payload.filename;
-        fulfill(payload);
+        return fulfill(payload);
       });
     });
   })
@@ -154,6 +162,5 @@ function scan_file(filename, options) {
 module.exports = {
   call_sav_scan: call_sav_scan,
   check_savd_status: check_savd_status,
-  sav_max_seats: sav_max_seats,
   scan_file: scan_file,
 };

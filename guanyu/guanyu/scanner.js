@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 /**
  * Facade to scanner functions
  */
