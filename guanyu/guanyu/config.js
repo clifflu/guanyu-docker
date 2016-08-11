@@ -11,6 +11,7 @@ nconf.use('memory')
       'CACHE__REDIS__HOST',
       'CACHE__DDB__DISABLED',
       'CACHE__DDB__TABLE',
+      'CONN__HOLD_DELAY',
       'CONN__RATIO',
       'DRUNK',
       'FETCH__PER_CORE',
@@ -21,6 +22,7 @@ nconf.use('memory')
     ],
   }).defaults({
   CONN: {
+    CONN__HOLD_DELAY: 1000,
     RATIO: 2,
   },
   FETCH: {

@@ -7,8 +7,6 @@ const router = express.Router();
 const file_scanner = require('../scanner/file');
 const route_helper = require('../helper/route');
 
-const sem = require('../sem');
-
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
