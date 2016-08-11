@@ -46,11 +46,15 @@ const crypto = require('crypto');
 const extend = require('extend');
 const fs = require('fs');
 
+const httperror = require('./httperror');
 const logger = require('./logger');
 const version = require('./version');
 
 
 function from_string(string, options) {
+  if (!string)
+    return Promise.reject(httperror.CONTENT_MISSING);
+
   let shasum = crypto.createHash('sha256');
   let reply = {
     malicious: false,
@@ -69,6 +73,9 @@ function from_string(string, options) {
 }
 
 function from_filename(filename, options) {
+  if (!filename)
+    return Promise.reject(httperror.CONTENT_MISSING);
+
   let shasum = crypto.createHash('sha256');
   let reply = {
     filename: filename,
