@@ -7,7 +7,7 @@ const logger = require('morgan');
 const bodyParser = require('body-parser');
 
 const config = require('./guanyu/config');
-const error = require('./guanyu/error');
+const http_error = require('./guanyu/httperror');
 
 const file_max_size = config.get('FILE:MAX_SIZE');
 const max_conn = require('./guanyu/sem').seats.conn;
@@ -34,7 +34,7 @@ app.use((req, res, next) => {
   if (req.method == 'POST' && tokens) {
     let token_set = new Set(tokens);
     if (!token_set.has(req.headers['api-token'])) {
-      return next(error.FORBIDDEN);
+      return next(http_error.FORBIDDEN);
     }
   }
 
@@ -53,7 +53,7 @@ app.use((req, res, next) => {
 
   if (live_connections > max_conn) {
     setTimeout(() => {
-      next(error.TOO_MANY_REQUESTS);
+      next(http_error.TOO_MANY_REQUESTS);
     }, config.get('CONN:HOLD_DELAY'));
   } else {
     ++live_connections;
@@ -66,7 +66,7 @@ app.use('/scan', require('./guanyu/routes/scan'));
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
-  next(error.NOT_FOUND);
+  next(http_error.NOT_FOUND);
 });
 
 // error handlers
