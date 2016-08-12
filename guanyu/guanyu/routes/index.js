@@ -6,6 +6,7 @@ const router = express.Router();
 
 const file_scanner = require('../scanner/file');
 const route_helper = require('../helper/route');
+const sem = require('../sem');
 
 
 /* GET home page. */
@@ -17,11 +18,8 @@ router.get('/', function (req, res, next) {
 router.get('/healthcheck', (req, res) => {
   var status = 200;
   var response = {
-    param: {
-      status: 'healthy',
-      proc_per_core: require('../config').get('PROC_PER_CORE'),
-      sav_max_seats: require('../scanner/file').sav_max_seats,
-    }
+    status: 'healthy',
+    seats: sem.seats,
   };
 
   file_scanner.check_savd_status().then((running) => {
