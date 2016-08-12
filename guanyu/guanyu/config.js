@@ -14,9 +14,11 @@ nconf.use('memory')
       'CONN__HOLD_DELAY',
       'CONN__RATIO',
       'DRUNK',
+      'FETCH__PARALLEL',
       'FETCH__PER_CORE',
       'FILE__MAX_SIZE',
       'LOG_LEVEL',
+      'SCAN__PARALLEL',
       'SCAN__PER_CORE',
     ],
   }).defaults({
