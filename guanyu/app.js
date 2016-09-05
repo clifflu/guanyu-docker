@@ -47,16 +47,22 @@ app.use((req, res, next) => {
   function hungUp() {
     res.removeListener('finish', hungUp);
     res.removeListener('close', hungUp);
-
     --live_connections;
   }
 
-  if (live_connections > max_conn) {
+  if (req.method !== 'POST') {
+    // method other than POST
+    next();
+  } else if (live_connections > max_conn) {
+    // POST and too many connections
     setTimeout(() => {
       next(http_error.TOO_MANY_REQUESTS);
     }, config.get('CONN:HOLD_DELAY'));
   } else {
+    // POST with open seats
     ++live_connections;
+    res.on('finish', hungUp)
+    res.on('close', hungUp)
     next();
   }
 });
