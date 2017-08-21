@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Cache store for Guanyu
+Parameters:
+  CacheTableReadUnits:
+    Type: Number
+    Default: 1
+  CacheTableWriteUnits:
+    Type: Number
+    Default: 1
+Resources:
+  CacheTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: Id
+          AttributeType: B
+        - AttributeName: P
+          AttributeType: S
+      KeySchema:
+        - AttributeName: Id
+          KeyType: HASH
+        - AttributeName: P
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: !Ref CacheTableReadUnits
+        WriteCapacityUnits: !Ref CacheTableWriteUnits
+Outputs:
+  CacheTableName:
+    Value: !GetAtt CacheTable.Arn
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "CacheTableName"]]
+  CacheTableArn:
+    Value: !Ref CacheTable
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "CacheTableArn"]]
