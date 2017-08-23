@@ -1,6 +1,6 @@
 {
   "name": "guanyu",
-  "version": "0.1.12",
+  "version": "0.2.0-dev",
   "private": true,
   "scripts": {
     "dev": "nodemon bin/www",
