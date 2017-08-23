@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Common log facility initally designed for Guanyu"
+Resources:
+  AwsFirehoseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                "sts:ExternalId": !Ref AWS::AccountId
+      Path: "/"
+      Policies:
+        - PolicyName: WriteToLogBucket
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:AbortMultipartUpload
+                  - s3:GetBucketLocation
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:ListBucketMultipartUploads
+                  - s3:PutObject
+                Resource:
+                  - !GetAtt LogBucket.Arn
+                  - !Join ["", [!GetAtt LogBucket.Arn, "/*"]]
+  LogBucket:
+    Type: AWS::S3::Bucket
+  LogInfoFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      S3DestinationConfiguration:
+        BucketARN: !GetAtt LogBucket.Arn
+        BufferingHints:
+          IntervalInSeconds: 60
+          SizeInMBs: 3
+        CompressionFormat: GZIP
+        Prefix: info
+        RoleARN: !GetAtt AwsFirehoseRole.Arn
+  LogErrorFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      S3DestinationConfiguration:
+        BucketARN: !GetAtt LogBucket.Arn
+        BufferingHints:
+          IntervalInSeconds: 60
+          SizeInMBs: 3
+        CompressionFormat: GZIP
+        Prefix: error
+        RoleARN: !GetAtt AwsFirehoseRole.Arn
+Outputs:
+  LogInfoFirehoseName:
+    Value: !Ref LogInfoFirehose
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "LogInfoFirehoseName"]]
+  LogErrorFirehoseName:
+    Value: !Ref LogErrorFirehose
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "LogErrorFirehoseName"]]

@@ -1,0 +1,190 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Guanyu: v0.2.0"
+Parameters:
+  CacheTableReadUnits:
+    Type: Number
+    Default: 1
+  CacheTableWriteUnits:
+    Type: Number
+    Default: 1
+  Subnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnets where Guanyu servers and ALB should stay
+  Vpc:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC to deploy Guanyu to
+Resources:
+  CacheTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: Id
+          AttributeType: B
+        - AttributeName: P
+          AttributeType: S
+      KeySchema:
+        - AttributeName: Id
+          KeyType: HASH
+        - AttributeName: P
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: !Ref CacheTableReadUnits
+        WriteCapacityUnits: !Ref CacheTableWriteUnits
+  FetchQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      ReceiveMessageWaitTimeSeconds: 20
+  FetchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref PolicyFetchQueueConsumer
+      Path: /
+  PluginNsfwQueue:
+    Type: AWS::SQS::Queue
+  PluginRekognitionQueue:
+    Type: AWS::SQS::Queue
+  PluginSophosQueue:
+    Type: AWS::SQS::Queue
+  PluginWorkerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref PolicyRWCacheTable
+        - !Ref PolicyPluginQueueConsumer
+      Path: /
+  PolicyFetchQueueConsumer:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "sqs:ChangeMessageVisibility"
+              - "sqs:DeleteMessage"
+              - "sqs:ReceiveMessage"
+            Resource: !GetAtt FetchQueue.Arn
+  PolicyFetchQueueProducer:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sqs:SendMessage
+            Resource: !GetAtt FetchQueue.Arn
+  PolicyPluginQueueConsumer:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - sqs:ChangeMessageVisibility
+              - sqs:DeleteMessage
+              - sqs:ReceiveMessage
+            Resource:
+              - !GetAtt PluginNsfwQueue.Arn
+              - !GetAtt PluginRekognitionQueue.Arn
+              - !GetAtt PluginSophosQueue.Arn
+  PolicyPluginQueueProducer:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sqs:SendMessage
+            Resource:
+              - !GetAtt PluginNsfwQueue.Arn
+              - !GetAtt PluginRekognitionQueue.Arn
+              - !GetAtt PluginSophosQueue.Arn
+  PolicyRWCacheTable:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: ReadWrite to Cache Table
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:Query
+              - dynamodb:Scan
+              - dynamodb:UpdateItem
+            Resource: !GetAtt CacheTable.Arn
+  SampleBucket:
+    Type: AWS::S3::Bucket
+  WebAlb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      IpAddressType: 'ipv4'
+      Scheme: internet-facing
+      SecurityGroups:
+        - !Ref WebAlbSg
+      Subnets: !Ref Subnets
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+  WebAlbSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Guanyu ALB
+      # SecurityGroupEgress:
+      #   - Security Group Rule
+      # SecurityGroupIngress:
+      #   - Security Group Rule
+      Tags:
+        - Key: Name
+          Value: !Join ["", [!Ref "AWS::StackName", '-alb']]
+      VpcId: !Ref Vpc
+  WebRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref PolicyRWCacheTable
+        - !Ref PolicyFetchQueueProducer
+        - !Ref PolicyPluginQueueProducer
+      Path: /
+
+Outputs:
+  CacheTableArn:
+    Value: !Ref CacheTable
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "CacheTableArn"]]
+  CacheTableName:
+    Value: !GetAtt CacheTable.Arn
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "CacheTableName"]]
+  SampleBucketArn:
+    Value: !GetAtt SampleBucket.Arn
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "SampleBucketArns"]]
+  SampleBucketName:
+    Value: !Ref SampleBucket
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "SampleBucketName"]]

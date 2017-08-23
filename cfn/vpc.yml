@@ -1,0 +1,195 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Generic VPC: 3AZ with /20 public and private subnets , no NAT"
+Parameters:
+  VpcCidr:
+    Type: String
+    Description: First and second segment in VPC CIDR, default = "10.0"
+    Default: "10.0"
+    AllowedPattern: "^\\d{0,3}\\.\\d{0,3}$"
+Resources:
+  Igw:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+  IgwAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref Igw
+      VpcId: !Ref Vpc
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Join ["", [!Ref VpcCidr, ".0.0/16"]]
+      EnableDnsHostnames: True
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+  PubRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+      - Key: Name
+        Value: !Join ["", [!Ref "AWS::StackName", "-public"]]
+  PubRouteDefault:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref Igw
+      RouteTableId: !Ref PubRouteTable
+  PubSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: ""
+      CidrBlock: !Join ["", [!Ref VpcCidr, ".0.0/20"]]
+      MapPublicIpOnLaunch: True
+      Tags:
+        - Key: Name
+          Value: !Join ["", [!Ref "AWS::StackName", "-pub-a"]]
+      VpcId: !Ref Vpc
+  PubRouteAssocA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PubRouteTable
+      SubnetId: !Ref PubSubnetA
+  PubSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+          - 1
+          - Fn::GetAZs: ""
+      CidrBlock: !Join ["", [!Ref VpcCidr, ".16.0/20"]]
+      MapPublicIpOnLaunch: True
+      Tags:
+        - Key: Name
+          Value: !Join ["", [!Ref "AWS::StackName", "-pub-b"]]
+      VpcId: !Ref Vpc
+  PubRouteAssocB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PubRouteTable
+      SubnetId: !Ref PubSubnetB
+  PubSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+          - 2
+          - Fn::GetAZs: ""
+      CidrBlock: !Join ["", [!Ref VpcCidr, ".32.0/20"]]
+      MapPublicIpOnLaunch: True
+      Tags:
+        - Key: Name
+          Value: !Join ["", [!Ref "AWS::StackName", "-pub-c"]]
+      VpcId: !Ref Vpc
+  PubRouteAssocC:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PubRouteTable
+      SubnetId: !Ref PubSubnetC
+  PrivNAcl:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join ["", [!Ref "AWS::StackName", "-private"]]
+      VpcId: !Ref Vpc
+  PrivateNAclAllowLocalIngress:
+    Type: "AWS::EC2::NetworkAclEntry"
+    Properties:
+      CidrBlock: !Join ["", [!Ref VpcCidr, ".0.0/16"]]
+      NetworkAclId: !Ref PrivNAcl
+      Protocol: -1
+      RuleAction : "allow"
+      RuleNumber : 30000
+  PrivateNAclAllowLocalEgress:
+    Type: "AWS::EC2::NetworkAclEntry"
+    Properties:
+      CidrBlock: !Join ["", [!Ref VpcCidr, ".0.0/16"]]
+      Egress: True
+      NetworkAclId: !Ref PrivNAcl
+      Protocol: -1
+      RuleAction : "allow"
+      RuleNumber : 30000
+  PrivRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+      - Key: Name
+        Value: !Join ["", [!Ref "AWS::StackName", "-private"]]
+  PrivSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: ""
+      CidrBlock: !Join ["", [!Ref VpcCidr, ".64.0/20"]]
+      MapPublicIpOnLaunch: False
+      Tags:
+        - Key: Name
+          Value: !Join ["", [!Ref "AWS::StackName", "-priv-a"]]
+      VpcId: !Ref Vpc
+  PrivRouteAssocA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivRouteTable
+      SubnetId: !Ref PrivSubnetA
+  PrivNAclAssocA:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId: !Ref PrivNAcl
+      SubnetId: !Ref PrivSubnetA
+  PrivSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+          - 1
+          - Fn::GetAZs: ""
+      CidrBlock: !Join ["", [!Ref VpcCidr, ".80.0/20"]]
+      MapPublicIpOnLaunch: False
+      Tags:
+        - Key: Name
+          Value: !Join ["", [!Ref "AWS::StackName", "-priv-b"]]
+      VpcId: !Ref Vpc
+  PrivRouteAssocB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivRouteTable
+      SubnetId: !Ref PrivSubnetB
+  PrivNAclAssocA:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId: !Ref PrivNAcl
+      SubnetId: !Ref PrivSubnetB
+  PrivSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+          - 2
+          - Fn::GetAZs: ""
+      CidrBlock: !Join ["", [!Ref VpcCidr, ".96.0/20"]]
+      MapPublicIpOnLaunch: False
+      Tags:
+        - Key: Name
+          Value: !Join ["", [!Ref "AWS::StackName", "-priv-c"]]
+      VpcId: !Ref Vpc
+  PrivRouteAssocC:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivRouteTable
+      SubnetId: !Ref PrivSubnetC
+  PrivNAclAssocC:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      SubnetId: !Ref PrivSubnetC
+      NetworkAclId: !Ref PrivNAcl
