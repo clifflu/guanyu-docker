@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Guanyu: v0.2.0"
+Description: "Guanyu: v0.2.0. Requires guanyu log and vpc stacks."
 Parameters:
   CacheTableReadUnits:
     Type: Number
@@ -7,13 +7,91 @@ Parameters:
   CacheTableWriteUnits:
     Type: Number
     Default: 1
-  Subnets:
-    Type: List<AWS::EC2::Subnet::Id>
-    Description: Subnets where Guanyu servers and ALB should stay
-  Vpc:
-    Type: AWS::EC2::VPC::Id
-    Description: VPC to deploy Guanyu to
+  FleetSpotPrice:
+    Type: String
+    Default: "1.0"
+  FleetInstanceType:
+    Type: String
+    Default: m3.medium
+  FleetInstanceWeight:
+    Type: Number
+    Default: 100
+  FleetTargetCapacity:
+    Type: Number
+    Default: 100
+  VpcStackName:
+    Type: String
+    Description: Stack Name of vpc.yml to be deployed to
+Mappings:
+  Ami:
+    ap-south-1:
+      Ec2Hvm64: ami-d7abd1b8
+      NatHvm64: ami-96a9d3f9
+    eu-west-2:
+      EcsHvm64: ami-cb1101af
+      Ec2Hvm64: ami-489f8e2c
+      NatHvm64: ami-868190e2
+    eu-west-1:
+      EcsHvm64: ami-8fcc32f6
+      Ec2Hvm64: ami-ebd02392
+      NatHvm64: ami-f1d22188
+    ap-northeast-2:
+      Ec2Hvm64: ami-8663bae8
+      NatHvm64: ami-a462bbca
+    ap-northeast-1:
+      EcsHvm64: ami-b743bed1
+      Ec2Hvm64: ami-4af5022c
+      NatHvm64: ami-c4887fa2
+    sa-east-1:
+      Ec2Hvm64: ami-d27203be
+      NatHvm64: ami-9b7504f7
+    ca-central-1:
+      EcsHvm64: ami-b677c9d2
+      Ec2Hvm64: ami-5ac17f3e
+      NatHvm64: ami-a1be00c5
+    ap-southeast-1:
+      EcsHvm64: ami-9d1f7efe
+      Ec2Hvm64: ami-fdb8229e
+      NatHvm64: ami-40bb2123
+    ap-southeast-2:
+      EcsHvm64: ami-c1a6bda2
+      Ec2Hvm64: ami-30041c53
+      NatHvm64: ami-ef051d8c
+    eu-central-1:
+      EcsHvm64: ami-0460cb6b
+      Ec2Hvm64: ami-657bd20a
+      NatHvm64: ami-eb66cf84
+    us-east-1:
+      EcsHvm64: ami-9eb4b1e5
+      Ec2Hvm64: ami-4fffc834
+      NatHvm64: ami-a7fdcadc
+    us-east-2:
+      EcsHvm64: ami-1c002379
+      Ec2Hvm64: ami-ea87a78f
+      NatHvm64: ami-4986a62c
+    us-west-1:
+      EcsHvm64: ami-4a2c192a
+      Ec2Hvm64: ami-3a674d5a
+      NatHvm64: ami-3e674d5e
+    us-west-2:
+      EcsHvm64: ami-1d668865
+      Ec2Hvm64: ami-aa5ebdd2
+      NatHvm64: ami-4da24035
+
 Resources:
+  AwsSpotFleetRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: spotfleet.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole
+      Path: !Join ["", [/, !Ref "AWS::StackName", /]]
   CacheTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -30,11 +108,13 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: !Ref CacheTableReadUnits
         WriteCapacityUnits: !Ref CacheTableWriteUnits
+  EcsCluster:
+    Type: AWS::ECS::Cluster
   FetchQueue:
     Type: AWS::SQS::Queue
     Properties:
       ReceiveMessageWaitTimeSeconds: 20
-  FetchRole:
+  FetchTaskRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -46,14 +126,124 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - !Ref PolicyFetchQueueConsumer
-      Path: /
+      Path: !Join ["", [/, !Ref "AWS::StackName", /]]
+  Fleet:
+    Type: AWS::EC2::SpotFleet
+    Properties:
+      SpotFleetRequestConfigData:
+        IamFleetRole: !GetAtt AwsSpotFleetRole.Arn
+        LaunchSpecifications:
+          - IamInstanceProfile:
+              Arn: !GetAtt FleetInstanceProfile.Arn
+            ImageId: !FindInMap [Ami, !Ref "AWS::Region", EcsHvm64]
+            InstanceType: !Ref FleetInstanceType
+            SecurityGroups:
+              - GroupId: !Ref FleetSg
+            SubnetId:
+              Fn::ImportValue: !Join ["", [!Ref VpcStackName, PubSubnetA]]
+            UserData:
+              Fn::Base64: !Sub |
+                #!/bin/bash
+                yum update -y
+                cat <<EOT >> /etc/ecs/ecs.config
+                ECS_CLUSTER=${EcsCluster}
+                ECS_ENABLE_TASK_IAM_ROLE=true
+                ECS_ENABLE_TASK_IAM_ROLE_NETWORK_HOST=true
+                ECS_AVAILABLE_LOGGING_DRIVERS=["awslogs"]
+                EOT
+                service docker restart && start ecs
+            WeightedCapacity: !Ref FleetInstanceWeight
+          - IamInstanceProfile:
+              Arn: !GetAtt FleetInstanceProfile.Arn
+            ImageId: !FindInMap [Ami, !Ref "AWS::Region", EcsHvm64]
+            InstanceType: !Ref FleetInstanceType
+            SecurityGroups:
+              - GroupId: !Ref FleetSg
+            SubnetId:
+              Fn::ImportValue: !Join ["", [!Ref VpcStackName, PubSubnetB]]
+            UserData:
+              Fn::Base64: !Sub |
+                #!/bin/bash
+                yum update -y
+                cat <<EOT >> /etc/ecs/ecs.config
+                ECS_CLUSTER=${EcsCluster}
+                ECS_ENABLE_TASK_IAM_ROLE=true
+                ECS_ENABLE_TASK_IAM_ROLE_NETWORK_HOST=true
+                ECS_AVAILABLE_LOGGING_DRIVERS=["awslogs"]
+                EOT
+                service docker restart && start ecs
+            WeightedCapacity: !Ref FleetInstanceWeight
+          - IamInstanceProfile:
+              Arn: !GetAtt FleetInstanceProfile.Arn
+            ImageId: !FindInMap [Ami, !Ref "AWS::Region", EcsHvm64]
+            InstanceType: !Ref FleetInstanceType
+            SecurityGroups:
+              - GroupId: !Ref FleetSg
+            SubnetId:
+              Fn::ImportValue: !Join ["", [!Ref VpcStackName, PubSubnetC]]
+            UserData:
+              Fn::Base64: !Sub |
+                #!/bin/bash
+                yum update -y
+                cat <<EOT >> /etc/ecs/ecs.config
+                ECS_CLUSTER=${EcsCluster}
+                ECS_ENABLE_TASK_IAM_ROLE=true
+                ECS_ENABLE_TASK_IAM_ROLE_NETWORK_HOST=true
+                ECS_AVAILABLE_LOGGING_DRIVERS=["awslogs"]
+                EOT
+                service docker restart && start ecs
+            WeightedCapacity: !Ref FleetInstanceWeight
+        SpotPrice: !Ref FleetSpotPrice
+        TargetCapacity: !Ref FleetTargetCapacity
+  FleetInstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Path: !Join ["", [/, !Ref "AWS::StackName", /]]
+      Roles:
+        - !Ref FleetInstanceRole
+  FleetInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+          PolicyName: WriteLogs
+      Path: !Join ["", [/, !Ref "AWS::StackName", /]]
+  FleetSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ECS Hosts
+      # SecurityGroupEgress:
+      #   - Security Group Rule
+      # SecurityGroupIngress:
+      #   - Security Group Rule
+      Tags:
+        - Key: Name
+          Value: !Join ["", [!Ref "AWS::StackName", '-hosts']]
+      VpcId:
+        Fn::ImportValue: !Join ["", [!Ref VpcStackName, Vpc]]
   PluginNsfwQueue:
     Type: AWS::SQS::Queue
   PluginRekognitionQueue:
     Type: AWS::SQS::Queue
   PluginSophosQueue:
     Type: AWS::SQS::Queue
-  PluginWorkerRole:
+  PluginTaskRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -66,7 +256,7 @@ Resources:
       ManagedPolicyArns:
         - !Ref PolicyRWCacheTable
         - !Ref PolicyPluginQueueConsumer
-      Path: /
+      Path: !Join ["", [/, !Ref "AWS::StackName", /]]
   PolicyFetchQueueConsumer:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -139,7 +329,10 @@ Resources:
       Scheme: internet-facing
       SecurityGroups:
         - !Ref WebAlbSg
-      Subnets: !Ref Subnets
+      Subnets:
+        - Fn::ImportValue: !Join ["", [!Ref VpcStackName, PubSubnetA]]
+        - Fn::ImportValue: !Join ["", [!Ref VpcStackName, PubSubnetB]]
+        - Fn::ImportValue: !Join ["", [!Ref VpcStackName, PubSubnetC]]
       Tags:
         - Key: Name
           Value: !Ref AWS::StackName
@@ -154,8 +347,9 @@ Resources:
       Tags:
         - Key: Name
           Value: !Join ["", [!Ref "AWS::StackName", '-alb']]
-      VpcId: !Ref Vpc
-  WebRole:
+      VpcId:
+        Fn::ImportValue: !Join ["", [!Ref VpcStackName, Vpc]]
+  WebTaskRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -169,8 +363,7 @@ Resources:
         - !Ref PolicyRWCacheTable
         - !Ref PolicyFetchQueueProducer
         - !Ref PolicyPluginQueueProducer
-      Path: /
-
+      Path: !Join ["", [/, !Ref "AWS::StackName", /]]
 Outputs:
   CacheTableArn:
     Value: !Ref CacheTable
