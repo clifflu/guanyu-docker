@@ -18,14 +18,6 @@ Resources:
     Properties:
       InternetGatewayId: !Ref Igw
       VpcId: !Ref Vpc
-  Vpc:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: !Join ["", [!Ref VpcCidr, ".0.0/16"]]
-      EnableDnsHostnames: True
-      Tags:
-        - Key: Name
-          Value: !Ref AWS::StackName
   PubRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -193,3 +185,40 @@ Resources:
     Properties:
       SubnetId: !Ref PrivSubnetC
       NetworkAclId: !Ref PrivNAcl
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Join ["", [!Ref VpcCidr, ".0.0/16"]]
+      EnableDnsHostnames: True
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+Outputs:
+  Vpc:
+    Value: !Ref Vpc
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "Vpc"]]
+  PubSubnetA:
+    Value: !Ref PubSubnetA
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "PubSubnetA"]]
+  PubSubnetB:
+    Value: !Ref PubSubnetB
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "PubSubnetB"]]
+  PubSubnetC:
+    Value: !Ref PubSubnetC
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "PubSubnetC"]]
+  PrivSubnetA:
+    Value: !Ref PrivSubnetA
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "PrivSubnetA"]]
+  PrivSubnetB:
+    Value: !Ref PrivSubnetB
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "PrivSubnetB"]]
+  PrivSubnetC:
+    Value: !Ref PrivSubnetC
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "PrivSubnetC"]]
