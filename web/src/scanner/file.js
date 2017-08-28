@@ -5,13 +5,12 @@ const extend = require('extend');
 const fs = require('fs');
 const os = require('os');
 
-const config = require("../config");
+const config = require("../../config");
 const logger = require('../logger');
 const mycache = require('../cache');
 const myhash = require("../hash");
 
 const exec = require('child_process').exec;
-const sem = require('../sem').sav;
 
 
 /**
@@ -100,10 +99,7 @@ function call_sav_scan_once(payload) {
   var match;
 
   return new Promise((fulfill, reject) => {
-    sem.take(() => {
-      exec(`${sav} ${sav_opt} "${payload.filename}"`, {timeout: 30000}, (err, stdout, stderr) => {
-        sem.leave();
-
+    exec(`${sav} ${sav_opt} "${payload.filename}"`, {timeout: 30000}, (err, stdout, stderr) => {
         logger.debug(`Savscan: stdout: ${stdout}\nstderr: ${stderr}`);
 
         if (match = stdout.match(ptrn)) {
@@ -140,7 +136,6 @@ function call_sav_scan_once(payload) {
         delete payload.filename;
         return fulfill(payload);
       });
-    });
   })
 }
 

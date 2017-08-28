@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Guanyu: v0.2.0. Requires guanyu log and vpc stacks."
+Description: "Guanyu: 0.2.0-dev. Requires guanyu log and vpc stacks."
 Parameters:
   CacheTableReadUnits:
     Type: Number
@@ -126,6 +126,7 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - !Ref PolicyFetchQueueConsumer
+        - !Ref PolicyPluginQueueProducer
       Path: !Join ["", [/, !Ref "AWS::StackName", /]]
   Fleet:
     Type: AWS::EC2::SpotFleet
@@ -237,8 +238,6 @@ Resources:
           Value: !Join ["", [!Ref "AWS::StackName", '-hosts']]
       VpcId:
         Fn::ImportValue: !Join ["", [!Ref VpcStackName, Vpc]]
-  PluginNsfwQueue:
-    Type: AWS::SQS::Queue
   PluginRekognitionQueue:
     Type: AWS::SQS::Queue
   PluginSophosQueue:
@@ -290,7 +289,6 @@ Resources:
               - sqs:DeleteMessage
               - sqs:ReceiveMessage
             Resource:
-              - !GetAtt PluginNsfwQueue.Arn
               - !GetAtt PluginRekognitionQueue.Arn
               - !GetAtt PluginSophosQueue.Arn
   PolicyPluginQueueProducer:
@@ -302,7 +300,6 @@ Resources:
           - Effect: Allow
             Action: sqs:SendMessage
             Resource:
-              - !GetAtt PluginNsfwQueue.Arn
               - !GetAtt PluginRekognitionQueue.Arn
               - !GetAtt PluginSophosQueue.Arn
   PolicyRWCacheTable:

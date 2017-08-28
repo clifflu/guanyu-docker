@@ -6,7 +6,7 @@ const request = require('request');
 const tmp = require('tmp');
 const url = require('url');
 
-const config = require('../config');
+const config = require('../../config');
 const file_scanner = require('./file.js');
 const logger = require('../logger');
 const mycache = require('../cache');

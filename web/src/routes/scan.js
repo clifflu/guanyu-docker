@@ -3,14 +3,14 @@
 const extend = require('extend');
 const fs = require('fs');
 
-const config = require('../config');
+const config = require('../../config');
 const logger = require('../logger');
 const route_helper = require('../helper/route');
-const scanner = require('../scanner');
 
-const file_max_size = require('../config').get('FILE:MAX_SIZE');
+const max_size = config.get('SAMPLE:MAX_SIZE');
 const router = require('express').Router();
-const upload = require('multer')({limits: {fileSize: file_max_size}, dest: '/tmp/'});
+const upload = require('multer')({limits: {fileSize: max_size}, dest: '/tmp/'});
+
 
 function handle_err(response) {
   return (err) => {
@@ -42,7 +42,7 @@ router.get('/file', (req, res) => {
 });
 
 router.post('/file', upload.single('file'), (req, res) => {
-  scanner.scan_file(
+  require('./scanner/file').scan_file(
     req.file ? req.file.path : undefined,
     route_helper.collect_options(req)
   ).then(handle_result(res), handle_err(res));
@@ -54,7 +54,7 @@ router.get('/uri', (req, res) => {
 });
 
 router.post('/uri', (req, res) => {
-  scanner.scan_uri(
+  require('./scanner/uri').scan_uri(
     req.body.uri,
     route_helper.collect_options(req)
   ).then(handle_result(res), handle_err(res));
@@ -66,7 +66,7 @@ router.get('/text', (req, res) => {
 });
 
 router.post('/text', (req, res) => {
-  scanner.scan_text(
+  require('./scanner/text').scan_text(
     req.body.text,
     route_helper.collect_options(req)
   ).then(handle_result(res), handle_err(res));

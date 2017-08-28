@@ -2,10 +2,9 @@
 
 const winston = require('winston');
 
-const config = require('./config');
+const config = require('../config');
 
 const hellomsg = "Guanyu at your service...";
-const hellomsg_drunk = `[DRUNK] ${hellomsg} (HIC ..ooOO)`;
 
 const log_level = Object.freeze({
   default: 'info',
@@ -30,7 +29,6 @@ const logger = new (winston.Logger)({
   ]
 });
 
-
-logger.info(config.get('DRUNK') ? hellomsg_drunk : hellomsg);
+logger.info(hellomsg);
 
 module.exports = logger;
