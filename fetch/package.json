@@ -7,7 +7,9 @@
   },
   "dependencies": {
     "extend": "^3.0.1",
-    "guanyu-core": "file:../guanyu-core"
+    "guanyu-core": "file:../guanyu-core",
+    "request": "^2.81.0",
+    "tmp": "0.0.33"
   },
   "devDependencies": {
     "chai": "^3.5.0",

@@ -1,5 +1,19 @@
 'use strict';
-
+/**
+ * # logger
+ *
+ * ## usage
+ *
+ * ```
+ * logger = prepareLogger({
+ *   loc: "package:filename:function",
+ *   req: "hash from main resource",
+ *   extra: {...}
+ * })
+ * ```
+ *
+ *
+ */
 const extend = require('extend')
 
 const config = require('./config');
@@ -33,24 +47,35 @@ function getLogLevel() {
   }
 }
 
-function log(msgObj) {
+function log(msgObj, extra) {
   if (levels[msgObj.level] < logLevel) {
     return
   }
   extend(msgObj, {ts: (new Date().toISOString()).replace(/\.\d+/, '')})
 
+  if (logLevel > levels.verbose) {
+    delete msgObj.extra // ignore extra
+  } else {
+    // merge extra, msgObj.extra may be undefined
+    msgObj.extra = extend(msgObj.extra, extra)
+  }
+
   console.log(JSON.stringify(msgObj))
 }
 
 function prepareLogger(options) {
-  let _fragment = extend({}, options) // shallow copy
+  let _opt = extend({}, options) // shallow copy
+
+  function gen(level) {
+    return (msg, extra) => log(extend({}, _opt, {level, msg}), extra)
+  }
 
   return {
-    debug: msg => log(extend({level: 'debug', msg}, _fragment)),
-    info: msg => log(extend({level: 'info', msg}, _fragment)),
-    verbose: msg => log(extend({level: 'verbose', msg}, _fragment)),
-    warn: msg => log(extend({level: 'warn', msg}, _fragment)),
-    error: msg => log(extend({level: 'error', msg}, _fragment)),
+    debug: gen('debug'),
+    info: gen('info'),
+    verbose: gen('verbose'),
+    warn: gen('warn'),
+    error: gen('error'),
   }
 }
 
