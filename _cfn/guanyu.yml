@@ -12,16 +12,19 @@ Parameters:
     Default: "1.0"
   FleetInstanceType:
     Type: String
+    Description: Default instance type for SpotFleet.
     Default: m3.medium
   FleetInstanceWeight:
     Type: Number
-    Default: 100
-  FleetTargetCapacity:
+    Description: "Weight to FleetInstanceType, #CPU by design"
+    Default: 1
+  FleetTargetCores:
     Type: Number
-    Default: 100
+    Description: "#Cores in SpotFleet"
+    Default: 1
   VpcStackName:
     Type: String
-    Description: Stack Name of vpc.yml to be deployed to
+    Description: vpc.yml StackName where guanyu should be
 Mappings:
   Ami:
     ap-south-1:
@@ -110,24 +113,6 @@ Resources:
         WriteCapacityUnits: !Ref CacheTableWriteUnits
   EcsCluster:
     Type: AWS::ECS::Cluster
-  FetchQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      ReceiveMessageWaitTimeSeconds: 20
-  FetchTaskRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: ecs-tasks.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - !Ref PolicyFetchQueueConsumer
-        - !Ref PolicyPluginQueueProducer
-      Path: !Join ["", [/, !Ref "AWS::StackName", /]]
   Fleet:
     Type: AWS::EC2::SpotFleet
     Properties:
@@ -195,7 +180,7 @@ Resources:
                 service docker restart && start ecs
             WeightedCapacity: !Ref FleetInstanceWeight
         SpotPrice: !Ref FleetSpotPrice
-        TargetCapacity: !Ref FleetTargetCapacity
+        TargetCapacity: !Ref FleetTargetCores
   FleetInstanceProfile:
     Type: "AWS::IAM::InstanceProfile"
     Properties:
@@ -238,6 +223,24 @@ Resources:
           Value: !Join ["", [!Ref "AWS::StackName", '-hosts']]
       VpcId:
         Fn::ImportValue: !Join ["", [!Ref VpcStackName, Vpc]]
+  PluginFetchQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      ReceiveMessageWaitTimeSeconds: 20
+  PluginFetchTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref PolicyFetchQueueConsumer
+        - !Ref PolicyPluginQueueProducer
+      Path: !Join ["", [/, !Ref "AWS::StackName", /]]
   PluginRekognitionQueue:
     Type: AWS::SQS::Queue
   PluginSophosQueue:
@@ -267,7 +270,7 @@ Resources:
               - "sqs:ChangeMessageVisibility"
               - "sqs:DeleteMessage"
               - "sqs:ReceiveMessage"
-            Resource: !GetAtt FetchQueue.Arn
+            Resource: !GetAtt PluginFetchQueue.Arn
   PolicyFetchQueueProducer:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -276,7 +279,7 @@ Resources:
         Statement:
           - Effect: Allow
             Action: sqs:SendMessage
-            Resource: !GetAtt FetchQueue.Arn
+            Resource: !GetAtt PluginFetchQueue.Arn
   PolicyPluginQueueConsumer:
     Type: AWS::IAM::ManagedPolicy
     Properties:

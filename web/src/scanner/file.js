@@ -6,7 +6,7 @@ const fs = require('fs');
 const os = require('os');
 
 const config = require("../../config");
-const logger = require('../logger');
+const logger = require('../../logger');
 const mycache = require('../cache');
 const myhash = require("../hash");
 

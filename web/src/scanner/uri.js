@@ -12,9 +12,7 @@ const logger = require('../logger');
 const mycache = require('../cache');
 const myhash = require("../hash");
 
-const file_max_size = config.get('FILE:MAX_SIZE');
-const sem = require('../sem').fetch;
-
+const maxSize = config.get('MAX_SIZE');
 
 const host_whitelist = [
   '104.com.tw',
@@ -134,52 +132,50 @@ function _fetch_uri(payload) {
       }
 
       let size = headRes.headers['content-length'];
-      if (size > file_max_size) {
+      if (size > maxSize) {
         return reject(extend(payload, {
           status: 413,
           message: "Resource too large",
-          result: new Error(`Resource size "${size}" exceeds limit "${file_max_size}"`)
+          result: new Error(`Resource size "${size}" exceeds limit "${maxSize}"`)
         }));
       }
+      
+      let fetched_size = 0;
+      let res = request({url: payload.resource});
 
-      sem.take(() => {
-        let fetched_size = 0;
-        let res = request({url: payload.resource});
-
-        res
-          .on('data', (data) => {
-            fetched_size += data.length;
-            if (fetched_size > file_max_size) {
-              sem.leave();
-              res.abort();
-              fs.unlink(name);
-              payload = extend(payload, {
-                status: 413,
-                message: "Resource too large",
-                error: new Error(`Fetched size "${fetched_size}" exceeds limit "${file_max_size}"`)
-              });
-              return reject(payload)
-            }
-          })
-          .pipe(fs.createWriteStream(name))
-          .on('finish', () => {
+      res
+        .on('data', (data) => {
+          fetched_size += data.length;
+          if (fetched_size > maxSize) {
             sem.leave();
-            payload.filename = name;
-            logger.debug(`Saved locally ${payload.filename}`);
-            fulfill(payload);
-          })
-          .on('error', (err) => {
-            // Fetch failed
-            sem.leave();
-            reject(extend(payload, {
-              status: "400",
-              message: "fetch failed",
-              error: err,
-            }));
-          });
-      });
-    });
-  });
+            res.abort();
+            fs.unlink(name);
+            payload = extend(payload, {
+              status: 413,
+              message: "Resource too large",
+              error: new Error(`Fetched size "${fetched_size}" exceeds limit "${maxSize}"`)
+            });
+            return reject(payload)
+          }
+        })
+        .pipe(fs.createWriteStream(name))
+        .on('finish', () => {
+          sem.leave();
+          payload.filename = name;
+          logger.debug(`Saved locally ${payload.filename}`);
+          fulfill(payload);
+        })
+        .on('error', (err) => {
+          // Fetch failed
+          sem.leave();
+          reject(extend(payload, {
+            status: "400",
+            message: "fetch failed",
+            error: err,
+          }));
+        });
+    })
+  })
 }
 
 /**

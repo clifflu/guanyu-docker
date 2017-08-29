@@ -1,0 +1,22 @@
+{
+  "name": "guanyu-core",
+  "version": "0.2.0-dev",
+  "private": true,
+  "scripts": {
+    "cov": "node_modules/.bin/istanbul cover --dir ./build/coverage node_modules/.bin/_mocha -- -R spec --recursive && [ -x `which open` ] && open build/coverage/lcov-report/index.html"
+  },
+  "directories": {
+    "lib": "lib"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.100.0",
+    "extend": "^3.0.1",
+    "nconf": "^0.8.4"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "istanbul": "^0.4.5",
+    "mocha": "^2.5.3",
+    "rewire": "^2.5.2"
+  }
+}

@@ -47,7 +47,7 @@ const extend = require('extend');
 const fs = require('fs');
 
 const httperror = require('./httperror');
-const logger = require('./logger');
+const logger = require('../logger');
 const version = require('./version');
 
 

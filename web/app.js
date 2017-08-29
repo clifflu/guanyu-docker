@@ -10,7 +10,7 @@ const config = require('./config');
 const token = require('./src/token')
 const http_error = require('./src/httperror');
 
-const file_max_size = config.get('SAMPLE:MAX_SIZE');
+const maxSize = config.get('MAX_SIZE');
 
 const app = express();
 
@@ -22,8 +22,8 @@ app.set('view engine', 'jade');
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
 
-app.use(bodyParser.json({limit: file_max_size}));
-app.use(bodyParser.urlencoded({limit: file_max_size, extended: false}));
+app.use(bodyParser.json({limit: maxSize}));
+app.use(bodyParser.urlencoded({limit: maxSize, extended: false}));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
