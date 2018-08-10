@@ -17,7 +17,7 @@ block sample_input
         dt (blob) #[B file]
         dd File to scan
 
-        include ./common-options.jade
+        include ./common-options.pug
 
 block sample_curl
     code curl -X POST -F "file=@#[em [File Path]]" "#[em [Guanyu URL]]"
