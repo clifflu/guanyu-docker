@@ -5,9 +5,9 @@ const extend = require('extend');
 const fs = require('fs');
 const os = require('os');
 
-const config = require("../../config");
-const logger = require('../../logger');
-const mycache = require('../cache');
+const { config } = require('guanyu-core');
+const { logger } = require('guanyu-core');
+const { cache } = require('guanyu-core');
 const myhash = require("../hash");
 
 const exec = require('child_process').exec;
@@ -29,7 +29,7 @@ const check_savd_status = (() => {
     var pattern_good = /^Sophos Anti-Virus is active /;
 
     return new Promise((fulfill) => {
-      exec(savdstatus, {timeout: 1000}, (err, stdout) => {
+      exec(savdstatus, { timeout: 1000 }, (err, stdout) => {
         if (stdout.match(pattern_good)) {
           _savd_running = true;
           return fulfill(true);
@@ -47,7 +47,7 @@ function ensure_savd_running(payload) {
       if (running || config.get('DRUNK'))
         return fulfill(payload);
 
-      exec('/opt/sophos-av/bin/savdctl --daemon start', {timeout: 3000}, (err) => {
+      exec('/opt/sophos-av/bin/savdctl --daemon start', { timeout: 3000 }, (err) => {
         if (err) {
           logger.warn('Failed starting savd, ', err);
           return reject(err);
@@ -99,43 +99,43 @@ function call_sav_scan_once(payload) {
   var match;
 
   return new Promise((fulfill, reject) => {
-    exec(`${sav} ${sav_opt} "${payload.filename}"`, {timeout: 30000}, (err, stdout, stderr) => {
-        logger.debug(`Savscan: stdout: ${stdout}\nstderr: ${stderr}`);
+    exec(`${sav} ${sav_opt} "${payload.filename}"`, { timeout: 30000 }, (err, stdout, stderr) => {
+      logger.debug(`Savscan: stdout: ${stdout}\nstderr: ${stderr}`);
 
-        if (match = stdout.match(ptrn)) {
-          assert(err.code == 3);
-          payload.malicious = true;
-          payload.result = match[1];
-        } else if (stderr == '' && !err) {
-          // No output and return 0 if negative
-          payload.malicious = false;
-          payload.result = "clean";
-        } else if (err && err.code == 2) {
-          // Encrypted file that savscan can't decrypt
-          payload.malicious = false;
-          payload.result = '#can\'t decrypt';
-        } else {
-          logger.warn(`File scanner failed with stdout: "${stdout}" and stderr: "${stderr}"`);
-          logger.warn(err);
+      if (match = stdout.match(ptrn)) {
+        assert(err.code == 3);
+        payload.malicious = true;
+        payload.result = match[1];
+      } else if (stderr == '' && !err) {
+        // No output and return 0 if negative
+        payload.malicious = false;
+        payload.result = "clean";
+      } else if (err && err.code == 2) {
+        // Encrypted file that savscan can't decrypt
+        payload.malicious = false;
+        payload.result = '#can\'t decrypt';
+      } else {
+        logger.warn(`File scanner failed with stdout: "${stdout}" and stderr: "${stderr}"`);
+        logger.warn(err);
 
-          return reject(extend({}, payload, {
-            error: new Error(stderr || stdout),
-            status: 500,
-          }));
-        }
+        return reject(extend({}, payload, {
+          error: new Error(stderr || stdout),
+          status: 500,
+        }));
+      }
 
-        logger.debug(`Deleting "${payload.filename}"`);
+      logger.debug(`Deleting "${payload.filename}"`);
 
-        try {
-          fs.unlink(payload.filename);
-        } catch (ex) {
-          logger.warn(`FS cleanup "${payload.filename}" failed, err = ${ex}`)
-        }
+      try {
+        fs.unlink(payload.filename);
+      } catch (ex) {
+        logger.warn(`FS cleanup "${payload.filename}" failed, err = ${ex}`)
+      }
 
-        logger.debug(`Scan result for ${payload.filename}: ${payload.malicious}`);
-        delete payload.filename;
-        return fulfill(payload);
-      });
+      logger.debug(`Scan result for ${payload.filename}: ${payload.malicious}`);
+      delete payload.filename;
+      return fulfill(payload);
+    });
   })
 }
 
@@ -148,10 +148,10 @@ function call_sav_scan_once(payload) {
  */
 function scan_file(filename, options) {
   return myhash.from_filename(filename, options)
-    .then(mycache.get_result)
+    .then(cache.get_result)
     .then(ensure_savd_running)
     .then(call_sav_scan)
-    .then(mycache.update_result);
+    .then(cache.update_result);
 }
 
 module.exports = {

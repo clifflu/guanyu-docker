@@ -87,7 +87,7 @@ function get_result_ddb(payload) {
   return new Promise(fulfill => {
     dynamodb.getItem({
       Key: {
-        hash: {B: b64decode(payload.hash)},
+        hash: { B: b64decode(payload.hash) },
       },
       ConsistentRead: false,
       TableName: config.get('CACHE:DDB:TABLE'),
@@ -145,7 +145,7 @@ function update_result(payload) {
   Promise.all([
     update_result_naive(cached_entry),
     update_result_ddb(cached_entry),
-  ]).then(()=> {
+  ]).then(() => {
     logger.info(`Cache ${payload.hash} updated`)
   })
 
@@ -158,7 +158,7 @@ function update_result_naive(payload) {
     // do nothing
   } else {
     // update naive cache otherwise
-    naive_database[payload.hash] = extend({}, payload, {cached: 'naive'})
+    naive_database[payload.hash] = extend({}, payload, { cached: 'naive' })
   }
 
   return Promise.resolve(payload)
@@ -180,8 +180,8 @@ function update_result_ddb(payload) {
   return new Promise(fulfill => {
     dynamodb.putItem({
       Item: {
-        hash: {B: b64decode(payload.hash)},
-        payload: {S: JSON.stringify(extend({}, payload, {cached: 'ddb'}))},
+        hash: { B: b64decode(payload.hash) },
+        payload: { S: JSON.stringify(extend({}, payload, { cached: 'ddb' })) },
       },
       TableName: config.get('CACHE:DDB:TABLE'),
     }, (err) => {

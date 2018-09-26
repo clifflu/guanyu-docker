@@ -3,11 +3,11 @@
 var chai = require('chai');
 var rewire = require('rewire');
 
-var config = rewire('../guanyu/config');
+var { config } = rewire('guanyu/config');
 
-describe('test/config.js', function(){
-  describe('API Token', function(){
-    describe('harvest_api_tokens()', function(){
+describe('test/config.js', function () {
+  describe('API Token', function () {
+    describe('harvest_api_tokens()', function () {
       var func = config.__get__('harvest_api_tokens');
 
       it('handle nothing', () => {

@@ -6,10 +6,10 @@ const request = require('request');
 const tmp = require('tmp');
 const url = require('url');
 
-const config = require('../../config');
+const { config } = require('guanyu-core');
 const file_scanner = require('./file.js');
-const logger = require('../logger');
-const mycache = require('../cache');
+const { logger } = require('guanyu-core');
+const { cache } = require('guanyu-core');
 const myhash = require("../hash");
 
 const maxSize = config.get('MAX_SIZE');
@@ -113,10 +113,10 @@ function _fetch_uri(payload) {
   }
 
   return new Promise((fulfill, reject) => {
-    let name = tmp.tmpNameSync({template: '/tmp/guanyu-XXXXXXXX'});
+    let name = tmp.tmpNameSync({ template: '/tmp/guanyu-XXXXXXXX' });
     logger.debug(`Fetching "${payload.resource}" to "${name}"`);
 
-    request({method: "HEAD", url: payload.resource}, (err, headRes) => {
+    request({ method: "HEAD", url: payload.resource }, (err, headRes) => {
       if (err)
         return reject(extend(payload, {
           status: 500,
@@ -139,9 +139,9 @@ function _fetch_uri(payload) {
           result: new Error(`Resource size "${size}" exceeds limit "${maxSize}"`)
         }));
       }
-      
+
       let fetched_size = 0;
-      let res = request({url: payload.resource});
+      let res = request({ url: payload.resource });
 
       res
         .on('data', (data) => {
@@ -186,10 +186,10 @@ function _fetch_uri(payload) {
 function scan_uri(uri, options) {
   return myhash.from_string(uri, options)
     .then(shortcut_host_whitelist)
-    .then(mycache.get_result)
+    .then(cache.get_result)
     .then(fetch_uri)
     .then(file_scanner.call_sav_scan)
-    .then(mycache.update_result);
+    .then(cache.update_result);
 }
 
 module.exports = {

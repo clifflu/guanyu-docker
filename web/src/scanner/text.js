@@ -2,8 +2,8 @@
 
 const extend = require('extend');
 
-const logger = require('../logger');
-const mycache = require('../cache');
+const { logger } = require('guanyu-core');
+const { cache } = require('guanyu-core');
 const myhash = require("../hash");
 const uri_scanner = require('./uri');
 
@@ -16,10 +16,10 @@ function fix_uri(resource) {
   }
 
   if (!(
-      resource.startsWith('http://') ||
-      resource.startsWith('https://') ||
-      resource.startsWith('ftp://')
-    )) {
+    resource.startsWith('http://') ||
+    resource.startsWith('https://') ||
+    resource.startsWith('ftp://')
+  )) {
     return "http://" + resource
   }
 
@@ -74,9 +74,9 @@ function check_text(payload) {
 
 function scan_text(text, options) {
   return myhash.from_string(text, options)
-    .then(mycache.get_result)
+    .then(cache.get_result)
     .then(check_text)
-    .then(mycache.update_result);
+    .then(cache.update_result);
 }
 
 module.exports = {

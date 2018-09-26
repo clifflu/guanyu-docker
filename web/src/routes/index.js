@@ -1,10 +1,8 @@
 'use strict';
 
 const express = require('express');
-const extend = require('extend');
 const router = express.Router();
 
-const file_scanner = require('../scanner/file');
 const route_helper = require('../helper/route');
 
 
@@ -17,7 +15,7 @@ router.get('/', function (req, res, next) {
 router.get('/healthcheck', (req, res) => {
   res
     .status(200)
-    .send({status: 'healthy'})
+    .send({ status: 'healthy' })
 })
 
 module.exports = router;
