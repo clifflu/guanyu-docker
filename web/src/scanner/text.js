@@ -2,8 +2,8 @@
 
 const extend = require('extend');
 
-const { logger } = require('guanyu-core');
-const { cache } = require('guanyu-core');
+const logFn = "text:src/scanner/text";
+const { cache, prepareLogger } = require('guanyu-core');
 const myhash = require("../hash");
 const uri_scanner = require('./uri');
 
@@ -37,6 +37,8 @@ function fulfilled(promise) {
 
 
 function check_text(payload) {
+  const logger = prepareLogger({ loc: `${logFn}:checkText` });
+
   if (payload.result) {
     logger.debug("Skip checking text");
     return Promise.resolve(payload);

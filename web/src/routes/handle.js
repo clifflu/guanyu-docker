@@ -1,6 +1,8 @@
-const { logger } = require('guanyu-core');
+const logFn = 'handle:src/routes/handle';
+const { prepareLogger } = require('guanyu-core');
 
 function handle_err(response) {
+  const logger = prepareLogger({ loc: `${logFn}:handleErr` });
   return (err) => {
     logger.warn(err);
     response.status(err.status || 500).render("error", {
@@ -13,6 +15,7 @@ function handle_err(response) {
 }
 
 function handle_result(response) {
+  const logger = prepareLogger({ loc: `${logFn}:handleResult` });
   return (result) => {
     logger.info(result);
     response.send(result);

@@ -6,10 +6,9 @@ const request = require('request');
 const tmp = require('tmp');
 const url = require('url');
 
-const { config } = require('guanyu-core');
+const logFn = "url:src/scanner/url";
+const { config, cache, prepareLogger } = require('guanyu-core');
 const file_scanner = require('./file.js');
-const { logger } = require('guanyu-core');
-const { cache } = require('guanyu-core');
 const myhash = require("../hash");
 
 const maxSize = config.get('MAX_SIZE');
@@ -41,6 +40,7 @@ const host_whitelist = [
 
 
 function shortcut_host_whitelist(payload) {
+  const logger = prepareLogger({ loc: `${logFn}:shortcutHostWhitelist` });
   let uri = url.parse(payload.resource);
 
   if (!uri.host) {
@@ -99,6 +99,8 @@ function fetch_uri(payload) {
  * @private
  */
 function _fetch_uri(payload) {
+  const logger = prepareLogger({ loc: `${logFn}:_fetchUri` });
+
   if (payload.result) {
     logger.debug("Skip fetching uri for result already known");
     return Promise.resolve(payload);

@@ -4,17 +4,17 @@ const extend = require('extend')
 
 const AWS = require('./aws')
 const config = require('./config')
-const logger = require('./logger')
-
-const naive_database = {}
+const logFn = 'cache:guanyu-core/lib/cache';
+const { prepareLogger } = require('./logger');
+const naive_database = {};
 
 const get_ddb_client = (() => {
   let _cache
-  let conf = config.get('CACHE:DDB')
+  let conf = config.get('STACK')
 
   return () => {
     if (_cache === undefined) {
-      _cache = conf && conf.TABLE && !conf.DISABLED
+      _cache = conf && conf.CACHE_TABLE && !conf.CACHE_TABLE_DISABLED
         ? new AWS.DynamoDB()
         : null
     }
@@ -25,7 +25,7 @@ const get_ddb_client = (() => {
 
 
 function b64decode(b64string) {
-  return new Buffer(b64string, 'base64')
+  return new Buffer.from(b64string, 'base64')
 }
 
 
@@ -37,6 +37,7 @@ function b64decode(b64string) {
  * @returns {Promise}
  */
 function get_result(payload) {
+  const logger = prepareLogger({ loc: `${logFn}:getResult` });
   if (payload.result) {
     logger.info(`Skipping fulfilled cache lookup on "${payload.hash}"`)
     return Promise.resolve(payload)
@@ -56,6 +57,7 @@ function get_result(payload) {
 }
 
 function get_result_naive(payload) {
+  const logger = prepareLogger({ loc: `${logFn}:getResultNaive` });
   if (payload.result) {
     logger.debug(`Skipping naive cache lookup on "${payload.hash}"`)
     return Promise.resolve(payload)
@@ -71,6 +73,7 @@ function get_result_naive(payload) {
 }
 
 function get_result_ddb(payload) {
+  const logger = prepareLogger({ loc: `${logFn}:getResultDDB` });
   if (payload.result) {
     logger.debug(`Skipping DDB cache lookup on "${payload.hash}"`)
     return Promise.resolve(payload)
@@ -82,7 +85,7 @@ function get_result_ddb(payload) {
     return Promise.resolve(payload)
   }
 
-  logger.debug("Trying DDB: " + config.get('CACHE:DDB:TABLE'))
+  logger.debug("Trying DDB: " + config.get('STACK:CACHE_TABLE'))
 
   return new Promise(fulfill => {
     dynamodb.getItem({
@@ -90,7 +93,7 @@ function get_result_ddb(payload) {
         hash: { B: b64decode(payload.hash) },
       },
       ConsistentRead: false,
-      TableName: config.get('CACHE:DDB:TABLE'),
+      TableName: config.get('STACK:CACHE_TABLE'),
     }, (err, data) => {
       if (err) {
         logger.error("Failed getItem from ddb", err)
@@ -121,6 +124,7 @@ function get_result_ddb(payload) {
  * @returns {Promise}
  */
 function update_result(payload) {
+  const logger = prepareLogger({ loc: `${logFn}:updateResult` });
   if (!payload.hash) {
     logger.error("Critical field `hash` missing on payload " + JSON.stringify(payload))
     return Promise.reject("hash missing")
@@ -153,6 +157,7 @@ function update_result(payload) {
 }
 
 function update_result_naive(payload) {
+  const logger = prepareLogger({ loc: `${logFn}:updateResultNaive` });
   logger.debug(`Updating cache (naive) ${payload.hash}`)
   if (payload.cached == 'naive') {
     // do nothing
@@ -165,6 +170,7 @@ function update_result_naive(payload) {
 }
 
 function update_result_ddb(payload) {
+  const logger = prepareLogger({ loc: `${logFn}:updateResultDDB` });
   let dynamodb = get_ddb_client()
 
   if (!dynamodb) {
@@ -183,7 +189,7 @@ function update_result_ddb(payload) {
         hash: { B: b64decode(payload.hash) },
         payload: { S: JSON.stringify(extend({}, payload, { cached: 'ddb' })) },
       },
-      TableName: config.get('CACHE:DDB:TABLE'),
+      TableName: config.get('STACK:CACHE_TABLE'),
     }, (err) => {
       if (err) {
         logger.error("Failed putItem to ddb", err)

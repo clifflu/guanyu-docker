@@ -5,9 +5,8 @@ const extend = require('extend');
 const fs = require('fs');
 const os = require('os');
 
-const { config } = require('guanyu-core');
-const { logger } = require('guanyu-core');
-const { cache } = require('guanyu-core');
+const logFn = "file:src/scanner/file"
+const { config, cache, prepareLogger } = require('guanyu-core');
 const myhash = require("../hash");
 
 const exec = require('child_process').exec;
@@ -42,6 +41,8 @@ const check_savd_status = (() => {
 })();
 
 function ensure_savd_running(payload) {
+  const logger = prepareLogger({ loc: `${logFn}:ensureSavdRunning` });
+
   return new Promise((fulfill, reject) => {
     check_savd_status().then((running) => {
       if (running || config.get('DRUNK'))
@@ -62,6 +63,7 @@ function ensure_savd_running(payload) {
 
 
 function call_sav_scan(payload) {
+  const logger = prepareLogger({ loc: `${logFn}:callSavScan` });
   if (payload.result || !payload.filename) {
     logger.debug("Skip sav scan for result or !filename");
     return Promise.resolve(payload);
@@ -93,6 +95,7 @@ function call_sav_scan(payload) {
  * @returns Promise
  */
 function call_sav_scan_once(payload) {
+  const logger = prepareLogger({ loc: `${logFn}:callSavScanOnce` });
   var sav = "/opt/sophos-av/bin/savscan";
   var sav_opt = "-archive -ndi -ss";
   var ptrn = / Virus '(.+)' found in file /;
