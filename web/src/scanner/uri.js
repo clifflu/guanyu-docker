@@ -1,17 +1,11 @@
 'use strict';
 
 const extend = require('extend');
-const fs = require('fs');
-const request = require('request');
-const tmp = require('tmp');
 const url = require('url');
 
 const logFn = "url:src/scanner/url";
 const { config, cache, prepareLogger } = require('guanyu-core');
-const file_scanner = require('./file.js');
 const myhash = require("../hash");
-
-const maxSize = config.get('MAX_SIZE');
 
 const host_whitelist = [
   '104.com.tw',
@@ -114,70 +108,20 @@ function _fetch_uri(payload) {
     }));
   }
 
-  return new Promise((fulfill, reject) => {
-    let name = tmp.tmpNameSync({ template: '/tmp/guanyu-XXXXXXXX' });
-    logger.debug(`Fetching "${payload.resource}" to "${name}"`);
+  /*
+   * write DynamoDB putItem logic and SQS sendMessage logic
+  */
 
-    request({ method: "HEAD", url: payload.resource }, (err, headRes) => {
-      if (err)
-        return reject(extend(payload, {
-          status: 500,
-          error: err,
-        }));
-
-      // Catches upstream 4XX
-      if (Math.floor(headRes.statusCode / 100) == 4) {
-        return reject(extend(payload, {
-          status: 400,
-          message: "Upstream failed: " + headRes.statusMessage,
-        }))
-      }
-
-      let size = headRes.headers['content-length'];
-      if (size > maxSize) {
-        return reject(extend(payload, {
-          status: 413,
-          message: "Resource too large",
-          result: new Error(`Resource size "${size}" exceeds limit "${maxSize}"`)
-        }));
-      }
-
-      let fetched_size = 0;
-      let res = request({ url: payload.resource });
-
-      res
-        .on('data', (data) => {
-          fetched_size += data.length;
-          if (fetched_size > maxSize) {
-            sem.leave();
-            res.abort();
-            fs.unlink(name);
-            payload = extend(payload, {
-              status: 413,
-              message: "Resource too large",
-              error: new Error(`Fetched size "${fetched_size}" exceeds limit "${maxSize}"`)
-            });
-            return reject(payload)
-          }
-        })
-        .pipe(fs.createWriteStream(name))
-        .on('finish', () => {
-          sem.leave();
-          payload.filename = name;
-          logger.debug(`Saved locally ${payload.filename}`);
-          fulfill(payload);
-        })
-        .on('error', (err) => {
-          // Fetch failed
-          sem.leave();
-          reject(extend(payload, {
-            status: "400",
-            message: "fetch failed",
-            error: err,
-          }));
-        });
-    })
-  })
+  /*
+   *  RETURN
+   *  
+   *  return new Promise((fulfill, reject) => {
+   *    fulfill(payload);
+   *    reject(payload);
+   *  });
+   *  return Promise.resolve(payload);
+   *  return Promise.reject(payload);
+   */
 }
 
 /**
@@ -190,7 +134,6 @@ function scan_uri(uri, options) {
     .then(shortcut_host_whitelist)
     .then(cache.get_result)
     .then(fetch_uri)
-    .then(file_scanner.call_sav_scan)
     .then(cache.update_result);
 }
 
