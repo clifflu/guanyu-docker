@@ -4,7 +4,7 @@ const extend = require('extend');
 const url = require('url');
 
 const logFn = "url:src/scanner/url";
-const { config, cache, prepareLogger } = require('guanyu-core');
+const { config, cache, prepareLogger, queue } = require('guanyu-core');
 const myhash = require("../hash");
 
 const host_whitelist = [
@@ -72,7 +72,7 @@ function fetch_uri(payload) {
   if (fall_with_upstream)
     return _fetch_uri(payload);
 
-  return _fetch_uri(payload).catch(function (payload) {
+  return _fetch_uri(payload).catch(payload => {
     extend(payload, {
       malicious: false,
       result: `#${payload.message}`,
@@ -81,8 +81,7 @@ function fetch_uri(payload) {
     delete payload.error;
     delete payload.status;
     delete payload.message;
-
-    return Promise.resolve(payload);
+    return Promise.reject(payload);
   });
 }
 
@@ -108,20 +107,9 @@ function _fetch_uri(payload) {
     }));
   }
 
-  /*
-   * write DynamoDB putItem logic and SQS sendMessage logic
-  */
-
-  /*
-   *  RETURN
-   *  
-   *  return new Promise((fulfill, reject) => {
-   *    fulfill(payload);
-   *    reject(payload);
-   *  });
-   *  return Promise.resolve(payload);
-   *  return Promise.reject(payload);
-   */
+  return queue.send_message(extend({}, payload, {
+    queue_url: config.get('PLUGIN:FETCH:QUEUE')
+  }));
 }
 
 /**
