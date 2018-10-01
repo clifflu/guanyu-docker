@@ -1,6 +1,8 @@
+const extend = require('extend');
 const gc = require('guanyu-core')
 const request = require('request');
 const tmp = require('tmp');
+const fetchUri = require('./fetch_uri');
 
 const config = gc.config
 const logFn = 'fetch:src/fetch'
@@ -49,7 +51,14 @@ function parseMessageSync(awsData) {
 function processMessage(payload) {
   const logger = plogger({loc: `${logFn}:processMessage`})
 
-  return payload
+  if (!payload.body) {  // No resource
+    logger.info(`queue message is empty`)
+    return {}
+  }
+  
+  return fetchUri.fetch_uri_and_upload(payload.body).then(function(value){
+    return extend(payload, value);
+  });
 }
 
 function deleteMessage(payload) {

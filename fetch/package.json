@@ -3,12 +3,14 @@
   "version": "0.2.0-dev",
   "private": true,
   "scripts": {
-    "cov": "node_modules/.bin/istanbul cover --dir ./build/coverage node_modules/.bin/_mocha -- -R spec --recursive && [ -x `which open` ] && open build/coverage/lcov-report/index.html"
+    "cov": "node_modules/.bin/istanbul cover --dir ./build/coverage node_modules/.bin/_mocha -- -R spec --recursive && [ -x `which open` ] && open build/coverage/lcov-report/index.html",
+    "start": "node index.js"
   },
   "dependencies": {
     "extend": "^3.0.1",
     "guanyu-core": "file:../guanyu-core",
     "request": "^2.81.0",
+    "s3-write-stream": "0.0.1",
     "tmp": "0.0.33"
   },
   "devDependencies": {
