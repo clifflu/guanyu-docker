@@ -6,13 +6,13 @@ nconf.use('memory')
   .overrides({
     PLUGIN: {
       FETCH: {
-        QUEUE: 'https://sqs.us-west-2.amazonaws.com/328286347281/guanyu-PluginFetchQueue-17377Z28CPFQ8',
+        QUEUE: 'https://sqs.ap-northeast-1.amazonaws.com/408772917132/Fetch',
       },
       REKOGNITION: {
         QUEUE: 'https://sqs.us-west-2.amazonaws.com/328286347281/guanyu-PluginRekognitionQueue-H3MNGDGANI4E',
       },
       SOPHOSAV: {
-        QUEUE: 'https://sqs.us-west-2.amazonaws.com/328286347281/guanyu-PluginSophosQueue-11UGLC8R2Z7Q5',
+        QUEUE: 'https://sqs.ap-northeast-1.amazonaws.com/408772917132/ScanFile',
       }
     },
     STACK: {
