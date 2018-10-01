@@ -29,25 +29,25 @@ const upload = require('s3-write-stream')(
  */
 function fetch_uri(payload) {
 	let fall_with_upstream = payload.options && payload.options.fall_with_upstream;
-  
-	if (fall_with_upstream)
-	  return _fetch_uri(payload);
-  
-	return _fetch_uri(payload).catch(function (payload) {
-	  extend(payload, {
-		malicious: false,
-		result: `#${payload.message}`,
-	  });
-  
-	  delete payload.error;
-	  delete payload.status;
-	  delete payload.message;
-  
-	  return Promise.resolve(payload);
-	});
-  }
 
-  
+	if (fall_with_upstream)
+		return _fetch_uri(payload);
+
+	return _fetch_uri(payload).catch(function (payload) {
+		extend(payload, {
+			malicious: false,
+			result: `#${payload.message}`,
+		});
+
+		delete payload.error;
+		delete payload.status;
+		delete payload.message;
+
+		return Promise.resolve(payload);
+	});
+}
+
+
 /**
  *
  * @param payload
@@ -67,31 +67,32 @@ function _fetch_uri(payload) {
 
 	return new Promise((fulfill, reject) => {
 		let name = tmp.tmpNameSync({ template: 'guanyu-XXXXXXXX' });
+	
 		logger.debug(`Fetching "${payload.resource}" to "${name}"`);
 
 		request({ method: "HEAD", url: payload.resource }, (err, headRes) => {
-			// if (err)
-			// 	return reject(extend(payload, {
-			// 		status: 500,
-			// 		error: err,
-			// 	}));
+			if (err)
+				return reject(extend(payload, {
+					status: 500,
+					error: err,
+				}));
 
-			// // Catches upstream 4XX
-			// if (Math.floor(headRes.statusCode / 100) == 4) {
-			// 	return reject(extend(payload, {
-			// 		status: 400,
-			// 		message: "Upstream failed: " + headRes.statusMessage,
-			// 	}))
-			// }
+			// Catches upstream 4XX
+			if (Math.floor(headRes.statusCode / 100) == 4) {
+				return reject(extend(payload, {
+					status: 400,
+					message: "Upstream failed: " + headRes.statusMessage,
+				}))
+			}
 
-			// let size = headRes.headers['content-length'];
-			// if (size > file_max_size) {
-			// 	return reject(extend(payload, {
-			// 		status: 413,
-			// 		message: "Resource too large",
-			// 		result: new Error(`Resource size "${size}" exceeds limit "${file_max_size}"`)
-			// 	}));
-			// }
+			let size = headRes.headers['content-length'];
+			if (size > file_max_size) {
+				return reject(extend(payload, {
+					status: 413,
+					message: "Resource too large",
+					result: new Error(`Resource size "${size}" exceeds limit "${file_max_size}"`)
+				}));
+			}
 
 
 			let fetched_size = 0;
@@ -101,25 +102,16 @@ function _fetch_uri(payload) {
 				.on('data', (data) => {
 					fetched_size += data.length;
 					if (fetched_size > file_max_size) {
+						res.abort();
 						payload = extend(payload, {
 							status: 413,
 							message: "Resource too large",
 							error: new Error(`Fetched size "${fetched_size}" exceeds limit "${file_max_size}"`)
 						});
 
-						_delete_file(name).catch(function (err) {
-							logger.debug(`Remove file in S3 error`);
-
-							payload = extend(payload, { 
-								message: "Failed to delete S3 file",
-								error: err
-							});
-
-							return Promise.resolve(payload);
-						});
+						_delete_file(name);
 
 						res.abort();
-
 						return reject(payload)
 					}
 				})
@@ -130,6 +122,7 @@ function _fetch_uri(payload) {
 					fulfill(payload);
 				})
 				.on('error', (err) => {
+					logger.error(`fectch ${name} failed`);
 					// Fetch failed
 					reject(extend(payload, {
 						status: "400",
@@ -152,7 +145,7 @@ function _fetch_uri(payload) {
 function sendScanQueue(payload) {
 	const logger = plogger({ loc: `${logFn}:sendScanQueue` })
 
-	if(payload.result) {
+	if (payload.result) {
 		logger.info(`already have result, don't send scan queue`);
 		return Promise.resolve(payload);
 	}
@@ -190,16 +183,12 @@ function _delete_file(name) {
 		Key: name
 	};
 
-	return new Promise((resolve, reject) => {
-		s3.deleteObject(params, function (err, data) {
-			err = new Error("test error");
-			if (err) {
-				logger.info(`entry delete error`);
-				return reject("err");
-			}
-		});
-
-		return resolve("success");
+	var promise = s3.deleteObject(params).promise();
+	promise.then(function (data) {
+		logger.info(`Success delete ${name} in S3`);
+	}).catch(function (err) {
+		logger.error(err);
+		return err;
 	});
 }
 
