@@ -29,7 +29,7 @@ Resources:
       ReceiveMessageWaitTimeSeconds: 20
   ScanFileBucket:
     Type: AWS::S3::Bucket
-  PolicyCacheTable:
+  PolicyWebCacheTable:
     Type: AWS::IAM::ManagedPolicy
     Properties:
       PolicyDocument:
@@ -41,9 +41,8 @@ Resources:
               - dynamodb:Scan
               - dynamodb:GetItem
               - dynamodb:PutItem
-              - dynamodb:UpdateItem
             Resource: !GetAtt CacheTable.Arn
-  PolicyQueueProvider:
+  PolicyFetchQueueProvider:
     Type: AWS::IAM::ManagedPolicy
     Properties:
       PolicyDocument:
@@ -54,7 +53,17 @@ Resources:
               - "sqs:SendMessage"
             Resource:
               - !GetAtt FetchQueue.Arn
-              - !GetAtt ScanFileQueue.Arn
+  PolicyFetchQueueRecevier:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "sqs:RecevieMessage"
+            Resource:
+              - !GetAtt FetchQueue.Arn
   PolicyScanFileProvider:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -63,16 +72,96 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - "s3:PutObject"
+              - "s3:ListBucket"
             Resource: !GetAtt ScanFileBucket.Arn
+          - Effect: Allow
+            Action:
+              - "s3:PutObject"
+              - "s3:DeleteObject"
+            Resource: !Join ["/", [!GetAtt ScanFileBucket.Arn, "*"]]
+          - Effect: Allow
+            Action:
+              - "sqs:SendMessage"
+            Resource:
+              - !GetAtt ScanFileQueue.Arn
+  PolicyScanFileRecevier:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "s3:ListBucket"
+            Resource: !GetAtt ScanFileBucket.Arn
+          - Effect: Allow
+            Action:
+              - "s3:GetObject"
+              - "s3:DeleteObject"
+            Resource: !Join ["/", [!GetAtt ScanFileBucket.Arn, "*"]]
+          - Effect: Allow
+            Action:
+              - "sqs:SendMessage"
+            Resource:
+              - !GetAtt ScanFileQueue.Arn
+  RoleGuanyuWeb:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "GuanyuWebService"
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ec2.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref PolicyWebCacheTable
+        - !Ref PolicyFetchQueueProvider
+        - !Ref PolicyScanFileProvider
+  RoleGuanyuFetch:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "GuanyuFetchService"
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ec2.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref PolicyFetchQueueRecevier
+        - !Ref PolicyScanFileProvider
+  RoleGuanyuScan:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "GuanyuScanService"
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ec2.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref PolicyScanFileRecevier
   GuanyuWebTester:
     Type: AWS::IAM::User
     Properties:
       UserName: "GuanyuWebTester_tod.shen"
       ManagedPolicyArns:
-        - !Ref PolicyCacheTable
-        - !Ref PolicyQueueProvider
+        - !Ref PolicyWebCacheTable
+        - !Ref PolicyFetchQueueProvider
         - !Ref PolicyScanFileProvider
+        - !Ref PolicyFetchQueueRecevier
+        - !Ref PolicyScanFileRecevier
 
 Outputs:
   CacheTableName:

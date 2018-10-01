@@ -43,7 +43,7 @@ nconf.use('memory')
       MAX: 32, // max concurrent connections for a container
     },
     DOOM_SLEEP: 60 * 1000, // Sleep on unexpected errors, in ms
-    LOG_LEVEL: 'debug',
+    LOG_LEVEL: 'info',
     MAX_SIZE: 33554432, // Max file size for fetch and upload
     PLUGIN: {
       FETCH: {
