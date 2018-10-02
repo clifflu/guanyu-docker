@@ -17,10 +17,6 @@ const upload = require('s3-write-stream')(
 	}
 )
 
-
-
-
-
 /**
  * Wraps _fetch_uri and handle fall_with_upstream
  *
@@ -31,7 +27,9 @@ function fetch_uri(payload) {
 	let fall_with_upstream = payload.options && payload.options.fall_with_upstream;
 
 	if (fall_with_upstream)
-		return _fetch_uri(payload);
+		return _fetch_uri(payload).catch(function (payload) {
+			return Promise.resolve(payload);
+		});
 
 	return _fetch_uri(payload).catch(function (payload) {
 		extend(payload, {
@@ -109,9 +107,8 @@ function _fetch_uri(payload) {
 							error: new Error(`Fetched size "${fetched_size}" exceeds limit "${file_max_size}"`)
 						});
 
-						_delete_file(name);
+						payload.deletefile = true;
 
-						res.abort();
 						return reject(payload)
 					}
 				})
@@ -145,10 +142,12 @@ function _fetch_uri(payload) {
 function sendScanQueue(payload) {
 	const logger = plogger({ loc: `${logFn}:sendScanQueue` })
 
-	if (payload.result) {
-		logger.info(`already have result, don't send scan queue`);
+	if (payload.result || !payload.filename) {
+		logger.info(`Skip sav scan for result or !filename, don't send scan queue`);
 		return Promise.resolve(payload);
 	}
+
+	logger.info(`Send message to scan queue`);
 
 	let sqsParams = {
 		MessageBody: JSON.stringify(payload),
@@ -170,26 +169,37 @@ function sendScanQueue(payload) {
 
 /**
  *
- * @param name
+ * @param payload
  * @returns {Promise}
- * @private
  */
-function _delete_file(name) {
+function delete_file(payload) {
 	const logger = plogger({ loc: `${logFn}:_delete_file` })
-	logger.info(`Resource too large, delete fetch file in S3`)
+	
+	if(!payload.deletefile){
+		logger.info(`Skip delete file in S3 for !deletefile`);
+		return Promise.resolve(payload); 
+	}
+
+	logger.info(`Resource too large, delete the fetch file in S3`)
 
 	let params = {
 		Bucket: bucketName,
-		Key: name
+		Key: payload.filename
 	};
 
-	var promise = s3.deleteObject(params).promise();
-	promise.then(function (data) {
-		logger.info(`Success delete ${name} in S3`);
-	}).catch(function (err) {
-		logger.error(err);
-		return err;
-	});
+	return new Promise((resolve, reject) => {
+		s3.deleteObject(params, (err, data) => {
+			if (err) {
+				logger.error(`Failed to delete ${payload.filename} in S3`);
+				return resolve(payload);
+			}
+				
+			logger.info(`Success delete ${payload.filename} in S3`);
+			delete payload.deletefile;
+
+			return resolve(payload);
+		})
+	})
 }
 
 
@@ -200,6 +210,7 @@ function _delete_file(name) {
  */
 function fetch_uri_and_upload(payload) {
 	return fetch_uri(payload)
+		.then(delete_file)
 		.then(sendScanQueue)
 }
 
