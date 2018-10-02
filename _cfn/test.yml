@@ -114,7 +114,7 @@ Resources:
           - Effect: "Allow"
             Principal: 
               Service: 
-                - "ecs-task.amazonaws.com"
+                - "ecs.amazonaws.com"
             Action: 
               - "sts:AssumeRole"
       ManagedPolicyArns:
@@ -131,7 +131,7 @@ Resources:
           - Effect: "Allow"
             Principal:
               Service:
-                - "ecs-task.amazonaws.com"
+                - "ecs.amazonaws.com"
             Action:
               - 'sts:AssumeRole'
       ManagedPolicyArns:
@@ -147,7 +147,7 @@ Resources:
           - Effect: "Allow"
             Principal: 
               Service: 
-                - "ecs-task.amazonaws.com"
+                - "ecs.amazonaws.com"
             Action: 
               - "sts:AssumeRole"
       ManagedPolicyArns:
