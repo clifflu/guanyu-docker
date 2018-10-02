@@ -1,0 +1,186 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Guanyu Web include SQS, DynamoDB, S3."
+Resources:
+  CacheTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: hash
+          AttributeType: B
+        - AttributeName: payload
+          AttributeType: S
+      KeySchema:
+        - AttributeName: hash
+          KeyType: HASH
+        - AttributeName: payload
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+  FetchQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: "Fetch"
+      ReceiveMessageWaitTimeSeconds: 20
+  ScanFileQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: "ScanFile"
+      ReceiveMessageWaitTimeSeconds: 20
+  ScanFileBucket:
+    Type: AWS::S3::Bucket
+  PolicyWebCacheTable:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:Query
+              - dynamodb:Scan
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+            Resource: !GetAtt CacheTable.Arn
+  PolicyFetchQueueProvider:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "sqs:SendMessage"
+            Resource:
+              - !GetAtt FetchQueue.Arn
+  PolicyFetchQueueRecevier:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "sqs:ReceiveMessage"
+            Resource:
+              - !GetAtt FetchQueue.Arn
+  PolicyScanFileProvider:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "s3:ListBucket"
+            Resource: !GetAtt ScanFileBucket.Arn
+          - Effect: Allow
+            Action:
+              - "s3:PutObject"
+              - "s3:DeleteObject"
+            Resource: !Join ["/", [!GetAtt ScanFileBucket.Arn, "*"]]
+          - Effect: Allow
+            Action:
+              - "sqs:SendMessage"
+            Resource:
+              - !GetAtt ScanFileQueue.Arn
+  PolicyScanFileRecevier:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "s3:ListBucket"
+            Resource: !GetAtt ScanFileBucket.Arn
+          - Effect: Allow
+            Action:
+              - "s3:GetObject"
+              - "s3:DeleteObject"
+            Resource: !Join ["/", [!GetAtt ScanFileBucket.Arn, "*"]]
+          - Effect: Allow
+            Action:
+              - "sqs:ReceiveMessage"
+            Resource:
+              - !GetAtt ScanFileQueue.Arn
+  RoleGuanyuWeb:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "GuanyuWebService"
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ecs-task.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref PolicyWebCacheTable
+        - !Ref PolicyFetchQueueProvider
+        - !Ref PolicyScanFileProvider
+  RoleGuanyuFetch:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "GuanyuFetchService"
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "ecs-task.amazonaws.com"
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - !Ref PolicyFetchQueueRecevier
+        - !Ref PolicyScanFileProvider
+  RoleGuanyuScan:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "GuanyuScanService"
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ecs-task.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref PolicyScanFileRecevier
+  GuanyuWebTester:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: "GuanyuWebTester_tod.shen"
+      ManagedPolicyArns:
+        - !Ref PolicyWebCacheTable
+        - !Ref PolicyFetchQueueProvider
+        - !Ref PolicyScanFileProvider
+        - !Ref PolicyFetchQueueRecevier
+        - !Ref PolicyScanFileRecevier
+
+Outputs:
+  CacheTableName:
+    Description: "Name of cache table"
+    Value: !Ref CacheTable
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "CacheTableName"]]
+  FetchQueueURL: 
+    Description: "URL of Fetch Queue"
+    Value: !Ref FetchQueue
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "FetchQueueURL"]]
+  ScanFileQueueURL: 
+    Description: "URL of Fetch Queue"
+    Value: !Ref ScanFileQueue
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "ScanFileQueueURLURL"]]
+  ScanFileBucketName:
+    Description: Name of S3 bucket to hold website content
+    Value: !Ref ScanFileBucket
+    Export:
+      Name: !Join ["", [!Ref "AWS::StackName", "ScanFileBucketURL"]]

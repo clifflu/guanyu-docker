@@ -6,7 +6,7 @@ const favicon = require('serve-favicon');
 const logger = require('morgan');
 const bodyParser = require('body-parser');
 
-const config = require('./config');
+const { config } = require('guanyu-core');
 const token = require('./src/token')
 const http_error = require('./src/httperror');
 
@@ -22,8 +22,8 @@ app.set('view engine', 'jade');
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
 
-app.use(bodyParser.json({limit: maxSize}));
-app.use(bodyParser.urlencoded({limit: maxSize, extended: false}));
+app.use(bodyParser.json({ limit: maxSize }));
+app.use(bodyParser.urlencoded({ limit: maxSize, extended: false }));
 
 app.use(express.static(path.join(__dirname, 'public')));
 

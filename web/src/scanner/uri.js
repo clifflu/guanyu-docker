@@ -1,18 +1,11 @@
 'use strict';
 
 const extend = require('extend');
-const fs = require('fs');
-const request = require('request');
-const tmp = require('tmp');
 const url = require('url');
 
-const config = require('../../config');
-const file_scanner = require('./file.js');
-const logger = require('../logger');
-const mycache = require('../cache');
+const logFn = "url:src/scanner/url";
+const { config, cache, prepareLogger, queue } = require('guanyu-core');
 const myhash = require("../hash");
-
-const maxSize = config.get('MAX_SIZE');
 
 const host_whitelist = [
   '104.com.tw',
@@ -41,6 +34,7 @@ const host_whitelist = [
 
 
 function shortcut_host_whitelist(payload) {
+  const logger = prepareLogger({ loc: `${logFn}:shortcutHostWhitelist` });
   let uri = url.parse(payload.resource);
 
   if (!uri.host) {
@@ -78,7 +72,7 @@ function fetch_uri(payload) {
   if (fall_with_upstream)
     return _fetch_uri(payload);
 
-  return _fetch_uri(payload).catch(function (payload) {
+  return _fetch_uri(payload).catch(payload => {
     extend(payload, {
       malicious: false,
       result: `#${payload.message}`,
@@ -87,8 +81,7 @@ function fetch_uri(payload) {
     delete payload.error;
     delete payload.status;
     delete payload.message;
-
-    return Promise.resolve(payload);
+    return Promise.reject(payload);
   });
 }
 
@@ -99,6 +92,8 @@ function fetch_uri(payload) {
  * @private
  */
 function _fetch_uri(payload) {
+  const logger = prepareLogger({ loc: `${logFn}:_fetchUri` });
+
   if (payload.result) {
     logger.debug("Skip fetching uri for result already known");
     return Promise.resolve(payload);
@@ -112,70 +107,9 @@ function _fetch_uri(payload) {
     }));
   }
 
-  return new Promise((fulfill, reject) => {
-    let name = tmp.tmpNameSync({template: '/tmp/guanyu-XXXXXXXX'});
-    logger.debug(`Fetching "${payload.resource}" to "${name}"`);
-
-    request({method: "HEAD", url: payload.resource}, (err, headRes) => {
-      if (err)
-        return reject(extend(payload, {
-          status: 500,
-          error: err,
-        }));
-
-      // Catches upstream 4XX
-      if (Math.floor(headRes.statusCode / 100) == 4) {
-        return reject(extend(payload, {
-          status: 400,
-          message: "Upstream failed: " + headRes.statusMessage,
-        }))
-      }
-
-      let size = headRes.headers['content-length'];
-      if (size > maxSize) {
-        return reject(extend(payload, {
-          status: 413,
-          message: "Resource too large",
-          result: new Error(`Resource size "${size}" exceeds limit "${maxSize}"`)
-        }));
-      }
-      
-      let fetched_size = 0;
-      let res = request({url: payload.resource});
-
-      res
-        .on('data', (data) => {
-          fetched_size += data.length;
-          if (fetched_size > maxSize) {
-            sem.leave();
-            res.abort();
-            fs.unlink(name);
-            payload = extend(payload, {
-              status: 413,
-              message: "Resource too large",
-              error: new Error(`Fetched size "${fetched_size}" exceeds limit "${maxSize}"`)
-            });
-            return reject(payload)
-          }
-        })
-        .pipe(fs.createWriteStream(name))
-        .on('finish', () => {
-          sem.leave();
-          payload.filename = name;
-          logger.debug(`Saved locally ${payload.filename}`);
-          fulfill(payload);
-        })
-        .on('error', (err) => {
-          // Fetch failed
-          sem.leave();
-          reject(extend(payload, {
-            status: "400",
-            message: "fetch failed",
-            error: err,
-          }));
-        });
-    })
-  })
+  return queue.send_message(extend({}, payload, {
+    queue_url: config.get('PLUGIN:FETCH:QUEUE')
+  }));
 }
 
 /**
@@ -186,10 +120,9 @@ function _fetch_uri(payload) {
 function scan_uri(uri, options) {
   return myhash.from_string(uri, options)
     .then(shortcut_host_whitelist)
-    .then(mycache.get_result)
+    .then(cache.get_result)
     .then(fetch_uri)
-    .then(file_scanner.call_sav_scan)
-    .then(mycache.update_result);
+    .then(cache.update_result);
 }
 
 module.exports = {
