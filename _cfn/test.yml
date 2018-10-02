@@ -61,7 +61,7 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - "sqs:RecevieMessage"
+              - "sqs:ReceiveMessage"
             Resource:
               - !GetAtt FetchQueue.Arn
   PolicyScanFileProvider:
@@ -101,7 +101,7 @@ Resources:
             Resource: !Join ["/", [!GetAtt ScanFileBucket.Arn, "*"]]
           - Effect: Allow
             Action:
-              - "sqs:SendMessage"
+              - "sqs:ReceiveMessage"
             Resource:
               - !GetAtt ScanFileQueue.Arn
   RoleGuanyuWeb:
@@ -114,7 +114,7 @@ Resources:
           - Effect: "Allow"
             Principal: 
               Service: 
-                - "ec2.amazonaws.com"
+                - "ecs-task.amazonaws.com"
             Action: 
               - "sts:AssumeRole"
       ManagedPolicyArns:
@@ -129,11 +129,11 @@ Resources:
         Version: "2012-10-17"
         Statement: 
           - Effect: "Allow"
-            Principal: 
-              Service: 
-                - "ec2.amazonaws.com"
-            Action: 
-              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - "ecs-task.amazonaws.com"
+            Action:
+              - 'sts:AssumeRole'
       ManagedPolicyArns:
         - !Ref PolicyFetchQueueRecevier
         - !Ref PolicyScanFileProvider
@@ -147,7 +147,7 @@ Resources:
           - Effect: "Allow"
             Principal: 
               Service: 
-                - "ec2.amazonaws.com"
+                - "ecs-task.amazonaws.com"
             Action: 
               - "sts:AssumeRole"
       ManagedPolicyArns:
