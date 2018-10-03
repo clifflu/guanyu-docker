@@ -6,6 +6,7 @@ const url = require('url');
 const logFn = "url:src/scanner/url";
 const { config, cache, prepareLogger, queue } = require('guanyu-core');
 const myhash = require("../hash");
+const polling = require("../polling");
 
 const host_whitelist = [
   '104.com.tw',
@@ -122,7 +123,8 @@ function scan_uri(uri, options) {
     .then(shortcut_host_whitelist)
     .then(cache.get_result)
     .then(fetch_uri)
-    .then(cache.update_result);
+    .then(cache.update_result)
+    .then(polling.get_result);
 }
 
 module.exports = {
