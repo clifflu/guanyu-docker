@@ -62,6 +62,7 @@ Resources:
           - Effect: Allow
             Action:
               - "sqs:ReceiveMessage"
+              - "sqs:DeleteMessage"
             Resource:
               - !GetAtt FetchQueue.Arn
   PolicyScanFileProvider:
@@ -102,6 +103,7 @@ Resources:
           - Effect: Allow
             Action:
               - "sqs:ReceiveMessage"
+              - "sqs:DeleteMessage"
             Resource:
               - !GetAtt ScanFileQueue.Arn
   RoleGuanyuWeb:
