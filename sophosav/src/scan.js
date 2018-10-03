@@ -155,6 +155,56 @@ function get_file_with_S3(payload) {
 	});
 }
 
+
+
+/**
+ *
+ * @param payload
+ * @returns {Promise}
+ */
+function delete_file_in_S3(payload) {
+	const logger = plogger({ loc: `${logFn}:get_file_with_S3` });
+	logger.debug(`Deleting "${payload.filename}" in S3 bucket`);
+
+	let params = {
+		Bucket: bucketName,
+		Key: payload.filename
+	};
+
+	return new Promise((resolve, reject) => {
+		s3.deleteObject(params, function (err, data) {
+			if (err)
+				return reject(err)
+
+			return resolve(payload)
+		});
+	}).catch((err) => {
+		logger.warn(`S3 cleanup "${payload.filename}" failed, err = ${err}`);
+		return Promise.resolve(payload);
+	});
+
+}
+
+/**
+ *
+ * @param payload
+ * @returns {Promise}
+ */
+function delete_file(payload) {
+	const logger = plogger({ loc: `${logFn}:get_file_with_S3` });
+	logger.debug(`Deleting "${payload.filename}"`);
+
+	try {
+		fs.unlink(payload.filename);
+	} catch (ex) {
+		logger.warn(`FS cleanup "${payload.filename}" failed, err = ${ex}`)
+	}
+
+	delete payload.filename;
+	return Promise.resolve(payload);
+}
+
+
 /**
  * Scan a local file
  *
@@ -166,6 +216,8 @@ function scan_file(payload) {
 	return ensure_savd_running(payload)
 		.then(get_file_with_S3)
 		.then(call_sav_scan)
+		.then(delete_file_in_S3)
+		.then(delete_file)
 }
 
 module.exports = {
