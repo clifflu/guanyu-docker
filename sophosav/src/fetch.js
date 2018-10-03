@@ -1,5 +1,6 @@
+const extend = require('extend');
 const gc = require('guanyu-core')
-
+const scan = require('./scan');
 const config = gc.config
 const logFn = 'sophosav:src/fetch'
 const plogger = gc.prepareLogger
@@ -52,7 +53,9 @@ function processMessage(payload) {
     return {}
   }
 
-  return payload;
+  return scan.scan_file(payload.body).then(function(value){
+    return extend(payload, value);
+  });
 }
 
 function deleteMessage(payload) {
