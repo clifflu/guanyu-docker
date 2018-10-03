@@ -62,6 +62,75 @@ function ensure_savd_running(payload) {
 }
 
 
+function call_sav_scan(payload) {
+	const logger = plogger({ loc: `${logFn}:call_sav_scan` });
+	if (payload.result || !payload.filename) {
+		logger.debug("Skip sav scan for result or !filename");
+		return Promise.resolve(payload);
+	}
+
+	logger.debug(`Scanning (sophos) ${payload.filename}`);
+
+	return call_sav_scan_once(payload)
+		.catch(call_sav_scan_once)
+		.catch(call_sav_scan_once)
+}
+
+
+/**
+* Scans `payload.filename` with Sophos.
+*
+* Resolve with standard payload defined in web/hash.js hydrated with following attributes: {
+*  malicious: bool,
+*  result: scan result (virus name | empty string) or error
+* }
+*
+* @param payload
+* @returns Promise
+*/
+function call_sav_scan_once(payload) {
+	const logger = plogger({ loc: `${logFn}:call_sav_scan_once` });
+
+	var sav = "/opt/sophos-av/bin/savscan";
+	var sav_opt = "-archive -ndi -ss";
+	var ptrn = / Virus '(.+)' found in file /;
+	var match;
+
+	return new Promise((fulfill, reject) => {
+		exec(`${sav} ${sav_opt} "${payload.filename}"`, { timeout: 30000 }, (err, stdout, stderr) => {
+
+			logger.debug(`Savscan: stdout: ${stdout}\nstderr: ${stderr}`);
+
+			if (match = stdout.match(ptrn)) {
+				assert(err.code == 3);
+				payload.malicious = true;
+				payload.result = match[1];
+			} else if (stderr == '' && !err) {
+				// No output and return 0 if negative
+				payload.malicious = false;
+				payload.result = "clean";
+			} else if (err && err.code == 2) {
+				// Encrypted file that savscan can't decrypt
+				payload.malicious = false;
+				payload.result = '#can\'t decrypt';
+			} else {
+				logger.warn(`File scanner failed with stdout: "${stdout}" and stderr: "${stderr}"`);
+				logger.warn(err);
+
+				return reject(extend({}, payload, {
+					error: new Error(stderr || stdout),
+					status: 500,
+				}));
+			}
+
+			logger.debug(`Scan result for ${payload.filename}: ${payload.malicious}`);
+
+			return fulfill(payload);
+		});
+	});
+}
+
+
 /**
  *
  * @param payload
@@ -96,6 +165,7 @@ function get_file_with_S3(payload) {
 function scan_file(payload) {
 	return ensure_savd_running(payload)
 		.then(get_file_with_S3)
+		.then(call_sav_scan)
 }
 
 module.exports = {
