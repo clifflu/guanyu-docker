@@ -9,4 +9,4 @@ RUN sed -i "s/<Email><Status>enabled/<Email><Status>disabled/" /opt/sophos-av/et
 
 WORKDIR /sophosav
 
-CMD ["npm", "run", "start"]
+CMD ["npm", "run", "dev"]
