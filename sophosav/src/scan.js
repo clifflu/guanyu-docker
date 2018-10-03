@@ -1,10 +1,13 @@
 const exec = require('child_process').exec;
+const fs = require('fs');
 const gc = require('guanyu-core');
 
 const config = gc.config;
 const logFn = 'sophosav:src/scan';
 const plogger = gc.prepareLogger;
 
+const s3 = new gc.aws.S3();
+const bucketName = config.get('STACK:SAMPLE_BUCKET');
 
 
 
@@ -58,6 +61,31 @@ function ensure_savd_running(payload) {
 	});
 }
 
+
+/**
+ *
+ * @param payload
+ * @returns {Promise}
+ */
+function get_file_with_S3(payload) {
+	const logger = plogger({ loc: `${logFn}:get_file_with_S3` });
+	let params = {
+		Bucket: bucketName,
+		Key: payload.filename
+	};
+	logger.info(`Bucket name is ${bucketName}`)
+
+	return new Promise((resolve, reject) => {
+		s3.getObject(params, function (err, data) {
+			if (err)
+				return reject(err)
+
+			logger.info(`get ${payload.filename} in ${bucketName}`);
+			resolve(payload)
+		}).createReadStream().pipe(fs.createWriteStream(payload.filename));
+	});
+}
+
 /**
  * Scan a local file
  *
@@ -67,6 +95,7 @@ function ensure_savd_running(payload) {
  */
 function scan_file(payload) {
 	return ensure_savd_running(payload)
+		.then(get_file_with_S3)
 }
 
 module.exports = {
