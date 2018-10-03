@@ -1,7 +1,6 @@
 const extend = require("extend");
-const logFn = "url:src/scanner/url";
 const { config, cache, prepareLogger } = require('guanyu-core');
-const logFn = "polling:src/polling";
+const logFn = "web:src/polling";
 
 let pullID;
 let timerID;

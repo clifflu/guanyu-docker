@@ -3,7 +3,7 @@
 const extend = require('extend');
 const url = require('url');
 
-const logFn = "url:src/scanner/url";
+const logFn = "web:src/scanner/url";
 const { config, cache, prepareLogger, queue } = require('guanyu-core');
 const myhash = require("../hash");
 const polling = require("../polling");

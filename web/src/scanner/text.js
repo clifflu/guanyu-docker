@@ -2,7 +2,7 @@
 
 const extend = require('extend');
 
-const logFn = "text:src/scanner/text";
+const logFn = "web:src/scanner/text";
 const { cache, prepareLogger } = require('guanyu-core');
 const myhash = require("../hash");
 const uri_scanner = require('./uri');

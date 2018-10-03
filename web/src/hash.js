@@ -47,7 +47,7 @@ const extend = require('extend');
 const fs = require('fs');
 
 const httperror = require('./httperror');
-const logFn = "hash:src/hash";
+const logFn = "web:src/hash";
 const { prepareLogger } = require('guanyu-core');
 const version = require('./version');
 

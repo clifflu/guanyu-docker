@@ -1,6 +1,6 @@
 'use strict';
 
-const logFn = "file:src/scanner/file"
+const logFn = "web:src/scanner/file"
 const { aws, config, cache, prepareLogger, queue } = require('guanyu-core');
 const extend = require('extend');
 const fs = require('fs');

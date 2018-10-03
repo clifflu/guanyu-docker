@@ -1,6 +1,6 @@
 const AWS = require('./aws');
 const extend = require('extend');
-const logFn = 'queue:guanyu-core/lib/queue';
+const logFn = 'guanyu-core:lib/queue';
 const { prepareLogger } = require('./logger');
 
 function send_message(payload) {
