@@ -1,0 +1,20 @@
+{
+  "name": "guanyu-fetch",
+  "version": "0.2.0-dev",
+  "private": true,
+  "scripts": {
+    "cov": "node_modules/.bin/istanbul cover --dir ./build/coverage node_modules/.bin/_mocha -- -R spec --recursive && [ -x `which open` ] && open build/coverage/lcov-report/index.html",
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "guanyu-core": "file:../guanyu-core"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.4",
+    "chai": "^3.5.0",
+    "istanbul": "^0.4.5",
+    "mocha": "^2.5.3",
+    "rewire": "^2.5.2"
+  }
+}
