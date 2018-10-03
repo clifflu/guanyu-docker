@@ -4,7 +4,7 @@ const extend = require('extend')
 
 const AWS = require('./aws')
 const config = require('./config')
-const logFn = 'cache:guanyu-core/lib/cache';
+const logFn = 'guanyu-core:lib/cache';
 const { prepareLogger } = require('./logger');
 const naive_database = {};
 

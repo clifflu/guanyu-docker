@@ -1,4 +1,4 @@
-const logFn = 'handle:src/routes/handle';
+const logFn = 'web:src/routes/handle';
 const { prepareLogger } = require('guanyu-core');
 
 function handle_err(response) {
