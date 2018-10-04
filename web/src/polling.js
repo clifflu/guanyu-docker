@@ -16,10 +16,12 @@ function checkResult(payload) {
   return new Promise((resolve, reject) => {
     if (payload.status || payload.result) {
       end();
-      if (payload.status) {
-        return reject(payload);
-      }
-      resolve(payload);
+      cache.update_result_naive(payload).then(() => {
+        if (payload.status) {
+          return reject(payload);
+        }
+        resolve(payload);
+      });
     }
   });
 }
@@ -30,9 +32,9 @@ function get_result(payload) {
     timeerID = setTimeout(() => {
       end();
       reject(payload);
-    }, 5 * 1000);
+    }, 30 * 1000);
     pullID = setInterval(() => {
-      cache.get_result(payload).then(checkResult);
+      cache.get_result_ddb(payload).then(checkResult);
     }, 1000);
   });
 }
