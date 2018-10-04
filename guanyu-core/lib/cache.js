@@ -204,5 +204,8 @@ function update_result_ddb(payload) {
 
 module.exports = {
   get_result: get_result,
-  update_result: update_result
+  update_result: update_result,
+  update_result_naive: update_result_naive,
+  update_result_ddb: update_result_ddb,
+  get_result_ddb: get_result_ddb
 }
