@@ -7,13 +7,9 @@ Resources:
       AttributeDefinitions:
         - AttributeName: hash
           AttributeType: B
-        - AttributeName: payload
-          AttributeType: S
       KeySchema:
         - AttributeName: hash
           KeyType: HASH
-        - AttributeName: payload
-          KeyType: RANGE
       ProvisionedThroughput:
         ReadCapacityUnits: 1
         WriteCapacityUnits: 1
