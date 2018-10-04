@@ -17,7 +17,7 @@ nconf.use('memory')
     },
     STACK: {
       CACHE_TABLE_DISABLED: false,
-      CACHE_TABLE: 'GuanyuTestStack-TodShen-CacheTable-1J84RYWSJPEJ5',
+      CACHE_TABLE: 'GuanyuTestStack-TodShen-CacheTable-VG2PCHD6H2P7',
       SELF_ENDPOINT: 'http://localhost:3000/',
       SAMPLE_BUCKET: 'guanyuteststack-todshen-scanfilebucket-1n8n1ngt0plk',
     },
