@@ -1,3 +1,4 @@
+const { cache } = require('guanyu-core');
 const exec = require('child_process').exec;
 const fs = require('fs');
 const gc = require('guanyu-core');
@@ -201,6 +202,7 @@ function delete_file(payload) {
 	}
 
 	delete payload.filename;
+	delete payload.cached;
 	return Promise.resolve(payload);
 }
 
@@ -218,6 +220,7 @@ function scan_file(payload) {
 		.then(call_sav_scan)
 		.then(delete_file_in_S3)
 		.then(delete_file)
+		.then(cache.update_result_ddb)
 }
 
 module.exports = {
