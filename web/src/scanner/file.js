@@ -5,6 +5,7 @@ const { aws, config, cache, prepareLogger, queue } = require('guanyu-core');
 const extend = require('extend');
 const fs = require('fs');
 const hash = require("../hash");
+const polling = require("../polling");
 const s3 = new aws.S3();
 const bucket = config.get('STACK:SAMPLE_BUCKET');
 
@@ -13,7 +14,7 @@ function upload_file(payload) {
 
   if (payload.result) {
     logger.debug("Skip fetching file for result already known");
-    return Promise.reject(payload);
+    return Promise.resolve(payload);
   }
 
   if (!s3) {
@@ -24,6 +25,7 @@ function upload_file(payload) {
 
   logger.debug(`Try put object to bucket: "${bucket}"`);
   return new Promise((resolve, reject) => {
+    let filename = payload.filename.split("/tmp/")[1];
     fs.readFile(payload.filename, (err, data) => {
       if (err) {
         logger.error(`Failed read file from "${payload.filename}"`, err)
@@ -36,10 +38,11 @@ function upload_file(payload) {
 
       s3.putObject({
         Bucket: bucket,
-        Key: payload.filename,
+        Key: filename,
         Body: base64data
       }).promise().then(data => {
-        logger.debug(`Put object "${payload.filename}" to ${bucket}`, data)
+        logger.debug(`Put object "${payload.filename}" to ${bucket}`, data);
+        payload.filename = filename;
         extend(payload, {
           queue_url: config.get('PLUGIN:SOPHOSAV:QUEUE')
         });
@@ -60,7 +63,7 @@ function delete_file(payload) {
 
   if (payload.result) {
     logger.debug("Skip send message for result already known or error.");
-    return Promise.reject(payload);
+    return Promise.resolve(payload);
   }
 
   logger.debug();
@@ -71,13 +74,13 @@ function delete_file(payload) {
   }, (err, data) => {
     if (err) {
       logger.error(`Failed delete file "${payload.filename}" in "${bucket}"`, err);
-      return Promise.reject(payload);
+      return Promise.resolve(payload);
     }
 
     logger.debug(`Delete file "${payload.filename}" in "${bucket}"`, data);
   });
 
-  return Promise.reject(payload);
+  return Promise.resolve(payload);
 }
 
 /**
@@ -93,7 +96,8 @@ function scan_file(filename, options) {
     .then(upload_file)
     .then(queue.send_message)
     .catch(delete_file)
-    .then(cache.update_result);
+    .then(cache.update_result)
+    .then(polling.get_result);
 }
 
 module.exports = {
