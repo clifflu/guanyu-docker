@@ -82,7 +82,7 @@ function fetch_uri(payload) {
     delete payload.error;
     delete payload.status;
     delete payload.message;
-    return Promise.reject(payload);
+    return Promise.resolve(payload);
   });
 }
 

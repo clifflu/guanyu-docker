@@ -7,21 +7,25 @@ let timerID;
 
 function end() {
   const logger = prepareLogger({ loc: `${logFn}:end` });
+  logger.debug("polling stop");
   pullID = pullID && clearInterval(pullID);
   timerID = timerID && clearTimeout(timerID);
 }
 
-function checkResult(payload) {
+function checkResult(resolve, reject) {
   const logger = prepareLogger({ loc: `${logFn}:checkResult` });
-  return new Promise((resolve, reject) => {
+  return (payload) => {
+    logger.debug("check payload", payload);
     if (payload.status || payload.result) {
       end();
-      if (payload.status) {
-        return reject(payload);
-      }
-      resolve(payload);
+      cache.update_result_naive(payload).then(() => {
+        if (payload.status) {
+          return reject(payload);
+        }
+        resolve(payload);
+      });
     }
-  });
+  }
 }
 
 function get_result(payload) {
@@ -30,9 +34,9 @@ function get_result(payload) {
     timeerID = setTimeout(() => {
       end();
       reject(payload);
-    }, 5 * 1000);
+    }, 30 * 1000);
     pullID = setInterval(() => {
-      cache.get_result(payload).then(checkResult);
+      cache.get_result_ddb(payload).then(checkResult(resolve, reject));
     }, 1000);
   });
 }
