@@ -1,0 +1,530 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Guanyu test by tod.shen"
+Parameters:
+  VPCCIDR:
+    Default: 10.0.0.0/16
+    Description: VPC CIDR Block
+    Type: String
+  Tenancy:
+    Type: String
+    Description: Dedicated Hardware
+    Default: default
+    AllowedValues:
+      - default
+      - dedicated
+  PublicSubnet1CIDR:
+    Default: 10.0.0.0/24
+    Description: Public subnet CIDR Block
+    Type: String
+  PublicSubnet2CIDR:
+    Default: 10.0.1.0/24
+    Description: VPC CIDR Block
+    Type: String
+Resources:
+  # Users
+  GuanyuCDUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: "GuanyuCD"
+      ManagedPolicyArns:
+        - !Ref PolicyGuanyuCD
+  ## Tester
+  GuanyuWebTester:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: "GuanyuWebTester_tod.shen"
+      ManagedPolicyArns:
+        - !Ref PolicyWebCacheTable
+        - !Ref PolicyFetchQueueProvider
+        - !Ref PolicyScanFileProvider
+        - !Ref PolicyFetchQueueRecevier
+        - !Ref PolicyScanFileRecevier
+  # Policies
+  PolicyGuanyuCD:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - ecr:GetAuthorizationToken
+            Resource: '*'
+  PolicyWebCacheTable:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:Query
+              - dynamodb:Scan
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+            Resource: !GetAtt CacheTable.Arn
+  PolicyFetchQueueProvider:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "sqs:SendMessage"
+            Resource:
+              - !GetAtt FetchQueue.Arn
+  PolicyFetchQueueRecevier:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "sqs:ReceiveMessage"
+              - "sqs:DeleteMessage"
+            Resource:
+              - !GetAtt FetchQueue.Arn
+  PolicyScanFileProvider:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "s3:ListBucket"
+            Resource: !GetAtt ScanFileBucket.Arn
+          - Effect: Allow
+            Action:
+              - "s3:PutObject"
+              - "s3:DeleteObject"
+              - "s3:PutObjectAcl"
+            Resource: !Join ["/", [!GetAtt ScanFileBucket.Arn, "*"]]
+          - Effect: Allow
+            Action:
+              - "sqs:SendMessage"
+            Resource:
+              - !GetAtt ScanFileQueue.Arn
+  PolicyScanFileRecevier:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "s3:ListBucket"
+            Resource: !GetAtt ScanFileBucket.Arn
+          - Effect: Allow
+            Action:
+              - "s3:GetObject"
+              - "s3:DeleteObject"
+            Resource: !Join ["/", [!GetAtt ScanFileBucket.Arn, "*"]]
+          - Effect: Allow
+            Action:
+              - "sqs:ReceiveMessage"
+              - "sqs:DeleteMessage"
+            Resource:
+              - !GetAtt ScanFileQueue.Arn
+  # Roles
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal: 
+            Service: 
+              - "ecs-tasks.amazonaws.com"
+          Action: 
+            - "sts:AssumeRole"
+      Path: /
+      Policies:
+        - PolicyName: ECSTaskExecutionRolePolicy
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action:
+                # Allow the ECS Tasks to download images from ECR
+                - 'ecr:GetAuthorizationToken'
+                - 'ecr:BatchCheckLayerAvailability'
+                - 'ecr:GetDownloadUrlForLayer'
+                - 'ecr:BatchGetImage'
+                # Allow the ECS tasks to upload logs to CloudWatch
+                - 'logs:CreateLogStream'
+                - 'logs:PutLogEvents'
+              Resource: '*'
+  GuanyuWebServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "GuanyuWebService"
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ecs-tasks.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref PolicyWebCacheTable
+        - !Ref PolicyFetchQueueProvider
+        - !Ref PolicyScanFileProvider
+  GuanyuFetchServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "GuanyuFetchService"
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "ecs-tasks.amazonaws.com"
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - !Ref PolicyFetchQueueRecevier
+        - !Ref PolicyScanFileProvider
+  GuanyuSophosavServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "GuanyuScanService"
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ecs-tasks.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Ref PolicyScanFileRecevier
+  # Resources(DynamoDB, SQS, S3)
+  CacheTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: hash
+          AttributeType: B
+      KeySchema:
+        - AttributeName: hash
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+  FetchQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: "Fetch"
+      ReceiveMessageWaitTimeSeconds: 20
+  ScanFileQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: "ScanFile"
+      ReceiveMessageWaitTimeSeconds: 20
+  ScanFileBucket:
+    Type: AWS::S3::Bucket
+  # Network
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: !Ref VPCCIDR
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      InstanceTenancy: !Ref Tenancy
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+  ## Public Subent
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - Fn::GetAZs: {Ref: 'AWS::Region'}
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet1CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "/", [ !Ref ECSCluster , 'Public1' ] ]
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+        - 1
+        - Fn::GetAZs: {Ref: 'AWS::Region'}
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet2CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "/", [ !Ref ECSCluster , 'Public2' ] ]
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+  GatewayAttachement:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref 'InternetGateway'
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayAttachement
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+  # Security Group
+  PublicLoadBalancerSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "GuanyuTest: Access to the public facing load balancer"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: 'tcp'
+          FromPort: '0'
+          ToPort: '65535'
+  PublicFargateContainerSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "GuanyuTest: Access to the Fargate containers"
+      VpcId: !Ref VPC
+  # Security Group Ingress
+  SGIngressFromPublicALBToPublicFargateContainer:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress from the public ALB
+      GroupId: !Ref 'PublicFargateContainerSG'
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref 'PublicLoadBalancerSG'
+  # Load Balancer
+  PublicLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: '30'
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      SecurityGroups: [!Ref 'PublicLoadBalancerSG']
+  DummyPublicTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 6
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Name: !Join ['-', [!Ref 'AWS::StackName', 'TG']]
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref VPC
+  PublicLoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn:
+      - PublicLoadBalancer
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref 'DummyPublicTargetGroup'
+          Type: 'forward'
+      LoadBalancerArn: !Ref 'PublicLoadBalancer'
+      Port: 80
+      Protocol: HTTP
+  # ECS Cluster
+  ECSCluster:
+    Type: 'AWS::ECS::Cluster'
+  ##!!!!! Need to add Auto Scailing Group !!!!!##
+  # ECR
+  WebECR:
+    Type: 'AWS::ECR::Repository'
+    DeletionPolicy: Retain
+    Properties: 
+      RepositoryName: "guanyu-web"
+      RepositoryPolicyText: 
+        Version: "2012-10-17"
+        Statement: 
+          - Sid: AllowPush
+            Effect: Allow
+            Principal: 
+              AWS:
+                - !GetAtt GuanyuCDUser.Arn
+            Action: 
+              - "ecr:PutImage"
+              - "ecr:InitiateLayerUpload"
+              - "ecr:UploadLayerPart"
+              - "ecr:CompleteLayerUpload"
+              - "ecr:BatchCheckLayerAvailability"
+  FetchECR:
+    Type: 'AWS::ECR::Repository'
+    DeletionPolicy: Retain
+    Properties: 
+      RepositoryName: "guanyu-fetch"
+      RepositoryPolicyText: 
+        Version: "2012-10-17"
+        Statement: 
+          - Sid: AllowPush
+            Effect: Allow
+            Principal: 
+              AWS: 
+                - !GetAtt GuanyuCDUser.Arn
+            Action: 
+              - "ecr:PutImage"
+              - "ecr:InitiateLayerUpload"
+              - "ecr:UploadLayerPart"
+              - "ecr:CompleteLayerUpload"
+              - "ecr:BatchCheckLayerAvailability"
+  SophosavECR:
+    Type: 'AWS::ECR::Repository'
+    DeletionPolicy: Retain
+    Properties: 
+      RepositoryName: "guanyu-sophosav"
+      RepositoryPolicyText: 
+        Version: "2012-10-17"
+        Statement: 
+          - Sid: AllowPush
+            Effect: Allow
+            Principal: 
+              AWS: 
+                - !GetAtt GuanyuCDUser.Arn
+            Action:
+              - "ecr:PutImage"
+              - "ecr:InitiateLayerUpload"
+              - "ecr:UploadLayerPart"
+              - "ecr:CompleteLayerUpload"
+              - "ecr:BatchCheckLayerAvailability"
+Outputs:
+  # Resources
+  CacheTableName:
+    Description: "Name of cache table"
+    Value: !Ref CacheTable
+    Export:
+      Name: !Sub '${AWS::StackName}:CacheTableName'
+  FetchQueueURL: 
+    Description: "URL of Fetch Queue"
+    Value: !Ref FetchQueue
+    Export:
+      Name: !Sub '${AWS::StackName}:FetchQueueURL'
+  ScanFileQueueURL: 
+    Description: "URL of Fetch Queue"
+    Value: !Ref ScanFileQueue
+    Export:
+      Name: !Sub '${AWS::StackName}:ScanFileQueueURL'
+  ScanFileBucketName:
+    Description: Name of S3 bucket to hold website content
+    Value: !Ref ScanFileBucket
+    Export:
+      Name: !Sub '${AWS::StackName}:ScanFileBucketName'
+  # Role
+  ECSTaskExecutionRole:
+    Description: "Arn of ECS task execution Role"
+    Value: !GetAtt ECSTaskExecutionRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}:ECSTaskExecutionRole'
+  GuanyuWebServiceRole:
+    Description: "Arn of guanyu web service Role"
+    Value: !GetAtt GuanyuWebServiceRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}:GuanyuWebServiceRole'
+  GuanyuFetchServiceRole:
+    Description: "Arn of guanyu web service Role"
+    Value: !GetAtt GuanyuFetchServiceRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}:GuanyuFetchServiceRole'
+  GuanyuSophosavServiceRole:
+    Description: "Arn of guanyu web service Role"
+    Value: !GetAtt GuanyuSophosavServiceRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}:GuanyuSophosavServiceRole'
+  # Cluster
+  ECSCluster:
+    Description: "Cluster of ECS"
+    Value: !Ref ECSCluster
+    Export:
+      Name: !Sub '${AWS::StackName}:ECSCluster'
+  # VPC
+  VPC:
+    Value: !Ref VPC
+    Export:
+      Name: !Sub '${AWS::StackName}:VPC'
+  PublicSubnet1:
+    Description: "Subnet of public1"
+    Value: !Ref PublicSubnet1
+    Export:
+      Name: !Sub '${AWS::StackName}:PublicSubnet1'
+  PublicSubnet2:
+    Description: "subnet of public2"
+    Value: !Ref PublicSubnet2
+    Export:
+      Name: !Sub '${AWS::StackName}:PublicSubnet2'
+  PublicFargateContainerSG:
+    Description: "Security group of public fargate container"
+    Value: !Ref PublicFargateContainerSG
+    Export:
+      Name: !Sub '${AWS::StackName}:PublicFargateContainerSG'
+  PublicLoadBalancerListener:
+    Description: "Listener of public load balancer"
+    Value: !Ref PublicLoadBalancerListener
+    Export:
+      Name: !Sub '${AWS::StackName}:PublicLoadBalancerListener'
+  # ECR
+  WebECR:
+    Description: "Url of web ECR"
+    Value:
+      !Join
+        - ""
+        - - !Ref AWS::AccountId
+          - ".dkr.ecr."
+          - !Ref AWS::Region
+          - ".amazonaws.com/"
+          - !Ref WebECR
+    Export:
+      Name: !Sub '${AWS::StackName}:WebECR'
+  FetchECR:
+    Description: "Name of fetch ECR"
+    Value:
+      !Join
+        - ""
+        - - !Ref AWS::AccountId
+          - ".dkr.ecr."
+          - !Ref AWS::Region
+          - ".amazonaws.com/"
+          - !Ref FetchECR
+    Export:
+      Name: !Sub '${AWS::StackName}:FetchECR'
+  SophosavECR:
+    Description: "Name of sophosav ECR"
+    Value:
+      !Join
+        - ""
+        - - !Ref AWS::AccountId
+          - ".dkr.ecr."
+          - !Ref AWS::Region
+          - ".amazonaws.com/"
+          - !Ref SophosavECR
+    Export:
+      Name: !Sub '${AWS::StackName}:SophosavECR'
