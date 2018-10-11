@@ -1,0 +1,265 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Guanyu app promote test by tod.shen"
+Parameters:
+  StackName:
+    Type: String
+    Default: GuanyuStack
+    Description: The name of the parent Fargate networking stack that you created. Necessary
+                  to locate and reference resources created by that stack.
+  WebContainerPort:
+    Type: Number
+    Default: 3000
+    Description: What port number the web inside the docker container is binding to
+  WebContainerCpu:
+    Type: Number
+    Default: 256
+    Description: How much CPU to give the web container. 1024 is 1 CPU
+  WebContainerMemory:
+    Type: Number
+    Default: 512
+    Description: How much memory in megabytes to give the web container
+  FetchContainerCpu:
+    Type: Number
+    Default: 256
+    Description: How much CPU to give the fetch container. 1024 is 1 CPU
+  FetchContainerMemory:
+    Type: Number
+    Default: 512
+    Description: How much memory in megabytes to give the fetch container
+  SophosavContainerCpu:
+    Type: Number
+    Default: 256
+    Description: How much CPU to give the scan container. 1024 is 1 CPU
+  SophosavContainerMemory:
+    Type: Number
+    Default: 512
+    Description: How much memory in megabytes to give the scan container
+  WebImageTag:
+    Type: String
+    Default: latest
+    Description: Tag of web image in WebECR
+  FetchImageTag:
+    Type: String
+    Default: latest
+    Description: Tag of fetch image in FetchECR
+  SophosavImageTag:
+    Type: String
+    Default: latest
+    Description: Tag of sophosav image in SophosavECR
+Resources:
+  # Task Definition
+  WebTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'web'
+      Cpu: !Ref 'WebContainerCpu'
+      Memory: !Ref 'WebContainerMemory'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn:
+        !ImportValue
+          'Fn::Sub': '${StackName}:ECSTaskExecutionRole'
+      TaskRoleArn:
+        !ImportValue
+          'Fn::Sub': '${StackName}:GuanyuWebServiceRole'
+      ContainerDefinitions:
+        - Name: 'web'
+          Cpu: !Ref 'WebContainerCpu'
+          Memory: !Ref 'WebContainerMemory'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !ImportValue
+                'Fn::Sub': '${StackName}:LogGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: web-service
+          Image:
+            !Join
+              - ":"
+              - - !ImportValue
+                    'Fn::Join':
+                      - ":"
+                      - - !Ref StackName
+                        - "WebECR"
+                - !Ref WebImageTag
+          PortMappings:
+            - ContainerPort: !Ref 'WebContainerPort'
+  FetchTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'fetch'
+      Cpu: !Ref 'FetchContainerCpu'
+      Memory: !Ref 'FetchContainerMemory'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn:
+        !ImportValue
+          'Fn::Sub': '${StackName}:ECSTaskExecutionRole'
+      TaskRoleArn:
+        !ImportValue
+          'Fn::Sub': '${StackName}:GuanyuFetchServiceRole'
+      ContainerDefinitions:
+        - Name: 'fetch'
+          Cpu: !Ref 'FetchContainerCpu'
+          Memory: !Ref 'FetchContainerMemory'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !ImportValue
+                'Fn::Sub': '${StackName}:LogGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: fetch-service
+          Image:
+            !Join
+              - ":"
+              - - !ImportValue
+                    'Fn::Join':
+                      - ":"
+                      - - !Ref StackName
+                        - "FetchECR"
+                - !Ref FetchImageTag
+  SophosavTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'sophosav'
+      Cpu: !Ref 'SophosavContainerCpu'
+      Memory: !Ref 'SophosavContainerMemory'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn:
+        !ImportValue
+          'Fn::Sub': '${StackName}:ECSTaskExecutionRole'
+      TaskRoleArn:
+        !ImportValue
+          'Fn::Sub': '${StackName}:GuanyuSophosavServiceRole'
+      ContainerDefinitions:
+        - Name: 'sophosav'
+          Cpu: !Ref 'SophosavContainerCpu'
+          Memory: !Ref 'SophosavContainerMemory'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !ImportValue
+                'Fn::Sub': '${StackName}:LogGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: sophosav-service
+          Image:
+            !Join
+              - ":"
+              - - !ImportValue
+                    'Fn::Join':
+                      - ":"
+                      - - !Ref StackName
+                        - "SophosavECR"
+                - !Ref SophosavImageTag
+  # WebService
+  WebService:
+    Type: AWS::ECS::Service
+    DependsOn: WebLoadBalancerRule
+    Properties:
+      ServiceName: 'web'
+      Cluster:
+        !ImportValue
+          'Fn::Sub': '${StackName}:ECSCluster'
+      LaunchType: FARGATE
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 75
+      DesiredCount: 1
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !ImportValue
+                'Fn::Sub': '${StackName}:PublicFargateContainerSG'
+          Subnets: 
+            - !ImportValue
+                'Fn::Sub': '${StackName}:PublicSubnet1'
+            - !ImportValue
+                'Fn::Sub': '${StackName}:PublicSubnet2'
+      TaskDefinition: !Ref WebTaskDefinition
+      LoadBalancers:
+        - ContainerName: 'web'
+          ContainerPort: !Ref 'WebContainerPort'
+          TargetGroupArn: !Ref 'WebTargetGroup'
+  WebTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 6
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      TargetType: ip
+      Name: 'web'
+      Port: !Ref 'WebContainerPort'
+      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      VpcId:
+        !ImportValue
+          'Fn::Sub': '${StackName}:VPC'
+  WebLoadBalancerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - TargetGroupArn: !Ref 'WebTargetGroup'
+          Type: 'forward'
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - "*"
+      ListenerArn:
+        !ImportValue
+          'Fn::Sub': '${StackName}:PublicLoadBalancerListener'
+      Priority: 1
+  FetchService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: 'fetch'
+      Cluster:
+        !ImportValue
+          'Fn::Sub': '${StackName}:ECSCluster'
+      LaunchType: FARGATE
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 75
+      DesiredCount: 1
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !ImportValue
+                'Fn::Sub': '${StackName}:PublicFargateContainerSG'
+          Subnets: 
+            - !ImportValue
+                'Fn::Sub': '${StackName}:PublicSubnet1'
+            - !ImportValue
+                'Fn::Sub': '${StackName}:PublicSubnet2'
+      TaskDefinition: !Ref FetchTaskDefinition
+  SophosavService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: 'sophosav'
+      Cluster:
+        !ImportValue
+          'Fn::Sub': '${StackName}:ECSCluster'
+      LaunchType: FARGATE
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 75
+      DesiredCount: 1
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !ImportValue
+                'Fn::Sub': '${StackName}:PublicFargateContainerSG'
+          Subnets: 
+            - !ImportValue
+                'Fn::Sub': '${StackName}:PublicSubnet1'
+            - !ImportValue
+                'Fn::Sub': '${StackName}:PublicSubnet2'
+      TaskDefinition: !Ref SophosavTaskDefinition
