@@ -417,6 +417,9 @@ Resources:
               - "ecr:UploadLayerPart"
               - "ecr:CompleteLayerUpload"
               - "ecr:BatchCheckLayerAvailability"
+  # Log
+  LogGroup:
+    Type: 'AWS::Logs::LogGroup'
 Outputs:
   # Resources
   CacheTableName:
@@ -528,3 +531,9 @@ Outputs:
           - !Ref SophosavECR
     Export:
       Name: !Sub '${AWS::StackName}:SophosavECR'
+  # Log
+  LogGroup:
+    Description: "Arn of log group"
+    Value: !Ref LogGroup
+    Export:
+      Name: !Sub '${AWS::StackName}:LogGroup'
