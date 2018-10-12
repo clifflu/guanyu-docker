@@ -11,11 +11,8 @@ const sqs = new gc.aws.SQS()
 const file_max_size = config.get('MAX_SIZE');
 const bucketName = config.get('STACK:SAMPLE_BUCKET');
 
-const upload = require('s3-write-stream')(
-	{
-		Bucket: bucketName,
-	}
-)
+
+const s3Stream = require('s3-upload-stream')(s3);
 
 /**
  * Wraps _fetch_uri and handle fall_with_upstream
@@ -112,7 +109,13 @@ function _fetch_uri(payload) {
 						return reject(payload)
 					}
 				})
-				.pipe(upload(name))
+				.pipe(
+					s3Stream.upload({
+						Bucket: bucketName,
+						Key: name,
+						ACL: "public-read"
+					  })
+				)
 				.on('finish', () => {
 					payload.filename = name;
 					logger.debug(`Saved to S3 ${payload.filename}`);
