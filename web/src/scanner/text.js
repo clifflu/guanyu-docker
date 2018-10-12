@@ -78,7 +78,7 @@ function scan_text(text, options) {
   return myhash.from_string(text, options)
     .then(cache.get_result)
     .then(check_text)
-    .then(cache.update_result);
+    .then(cache.update_result_ddb);
 }
 
 module.exports = {

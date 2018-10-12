@@ -96,7 +96,7 @@ function scan_file(filename, options) {
     .then(upload_file)
     .then(queue.send_message)
     .catch(delete_file)
-    .then(cache.update_result)
+    .then(cache.update_result_ddb)
     .then(polling.get_result);
 }
 
