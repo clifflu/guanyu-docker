@@ -98,6 +98,7 @@ Resources:
             Resource: !GetAtt ScanFileBucket.Arn
           - Effect: Allow
             Action:
+              - "s3:GetObject"
               - "s3:PutObject"
               - "s3:DeleteObject"
               - "s3:PutObjectAcl"
@@ -107,6 +108,10 @@ Resources:
               - "sqs:SendMessage"
             Resource:
               - !GetAtt ScanFileQueue.Arn
+          - Effect: Allow
+            Action:
+              - dynamodb:PutItem
+            Resource: !GetAtt CacheTable.Arn
   PolicyScanFileRecevier:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -128,6 +133,10 @@ Resources:
               - "sqs:DeleteMessage"
             Resource:
               - !GetAtt ScanFileQueue.Arn
+          - Effect: Allow
+            Action:
+              - dynamodb:PutItem
+            Resource: !GetAtt CacheTable.Arn
   # Roles
   ECSTaskExecutionRole:
     Type: AWS::IAM::Role
