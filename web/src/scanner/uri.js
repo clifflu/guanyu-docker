@@ -123,7 +123,7 @@ function scan_uri(uri, options) {
     .then(shortcut_host_whitelist)
     .then(cache.get_result)
     .then(fetch_uri)
-    .then(cache.update_result)
+    .then(cache.update_result_ddb)
     .then(polling.get_result);
 }
 
