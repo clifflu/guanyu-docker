@@ -11,7 +11,7 @@
     "extend": "^3.0.1",
     "guanyu-core": "file:../guanyu-core",
     "request": "^2.81.0",
-    "s3-write-stream": "0.0.1",
+    "s3-upload-stream": "^1.0.7",
     "tmp": "0.0.33"
   },
   "devDependencies": {
