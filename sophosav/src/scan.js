@@ -1,4 +1,5 @@
 const assert = require('assert');
+const extend = require('extend');
 const { cache } = require('guanyu-core');
 const exec = require('child_process').exec;
 const fs = require('fs');

@@ -1,7 +1,7 @@
 FROM clifflu/sophos-av-npm
 
-COPY ./sophosav ./sophosav
-COPY ./guanyu-core ./guanyu-core
+COPY ./sophosav /sophosav
+COPY ./guanyu-core /guanyu-core
 
 RUN cd /sophosav && npm install --production && npm dedupe
 RUN cd /guanyu-core && npm install --production && npm dedupe

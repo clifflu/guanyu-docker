@@ -1,7 +1,7 @@
 FROM node:alpine
 
 COPY web /web
-COPY guanyu-core /guanyu-core
+COPY ./guanyu-core /guanyu-core
 
 RUN cd /web && npm install && npm dedupe
 RUN cd /guanyu-core && npm install && npm dedupe
