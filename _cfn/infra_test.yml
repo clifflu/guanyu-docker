@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: "Guanyu test by tod.shen"
 Parameters:
   VPCCIDR:
-    Default: 10.0.0.0/16
+    Default: '10.0.0.0/16'
     Description: VPC CIDR Block
     Type: String
   Tenancy:
@@ -13,11 +13,11 @@ Parameters:
       - default
       - dedicated
   PublicSubnet1CIDR:
-    Default: 10.0.0.0/24
+    Default: '10.0.0.0/24'
     Description: Public subnet CIDR Block
     Type: String
   PublicSubnet2CIDR:
-    Default: 10.0.1.0/24
+    Default: '10.0.1.0/24'
     Description: VPC CIDR Block
     Type: String
 Resources:
@@ -50,6 +50,25 @@ Resources:
             Action:
               - ecr:GetAuthorizationToken
             Resource: '*'
+          - Effect: Allow
+            Action:
+              - ecs:DeregisterTaskDefinition
+              - ecs:RegisterTaskDefinition
+              - ecs:UpdateService
+              - ecs:DescribeServices
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - cloudformation:UpdateStack
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - iam:PassRole
+            Resource:
+              - !GetAtt GuanyuWebServiceRole.Arn
+              - !GetAtt GuanyuFetchServiceRole.Arn
+              - !GetAtt GuanyuSophosavServiceRole.Arn
+              - !GetAtt ECSTaskExecutionRole.Arn
   PolicyWebCacheTable:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -243,8 +262,8 @@ Resources:
     Type: 'AWS::EC2::VPC'
     Properties:
       CidrBlock: !Ref VPCCIDR
-      EnableDnsSupport: 'true'
-      EnableDnsHostnames: 'true'
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
       InstanceTenancy: !Ref Tenancy
       Tags:
         - Key: Name
@@ -313,8 +332,8 @@ Resources:
       SecurityGroupIngress:
         - CidrIp: 0.0.0.0/0
           IpProtocol: 'tcp'
-          FromPort: '0'
-          ToPort: '65535'
+          FromPort: 0
+          ToPort: 65535
   PublicFargateContainerSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -326,7 +345,7 @@ Resources:
     Properties:
       Description: Ingress from the public ALB
       GroupId: !Ref 'PublicFargateContainerSG'
-      IpProtocol: -1
+      IpProtocol: '-1'
       SourceSecurityGroupId: !Ref 'PublicLoadBalancerSG'
   # Load Balancer
   PublicLoadBalancer:
