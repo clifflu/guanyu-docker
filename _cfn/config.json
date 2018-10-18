@@ -1,0 +1,46 @@
+[
+    {
+      "ParameterKey": "StackName",
+      "UsePreviousValue": true
+    }, 
+    {
+      "ParameterKey": "WebContainerPort",
+      "UsePreviousValue": true
+    }, 
+    {
+      "ParameterKey": "WebContainerCpu",
+      "UsePreviousValue": true
+    }, 
+    {
+      "ParameterKey": "WebContainerMemory",
+      "UsePreviousValue": true
+    }, 
+    {
+      "ParameterKey": "FetchContainerCpu",
+      "UsePreviousValue": true
+    }, 
+    {
+      "ParameterKey": "FetchContainerMemory",
+      "UsePreviousValue": true
+    }, 
+    {
+      "ParameterKey": "SophosavContainerCpu",
+      "UsePreviousValue": true
+    }, 
+    {
+      "ParameterKey": "SophosavContainerMemory",
+      "UsePreviousValue": true
+    }, 
+    {
+      "ParameterKey": "WebImageTag",
+      "ParameterValue": "WebImageTag-SHA"
+    }, 
+    {
+      "ParameterKey": "FetchImageTag",
+      "ParameterValue": "FetchImageTag-SHA"
+    }, 
+    {
+      "ParameterKey": "SophosavImageTag",
+      "ParameterValue": "SophosavImageTag-SHA"
+    }
+  ]
