@@ -146,15 +146,20 @@ function get_file_with_S3(payload) {
 		Key: payload.filename
 	};
 	logger.info(`Bucket name is ${bucketName}`)
+	let file = fs.createWriteStream(payload.filename);
 
 	return new Promise((resolve, reject) => {
-		s3.getObject(params, function (err, data) {
-			if (err)
-				return reject(err)
-
+		s3.getObject(params).createReadStream()
+		.on('end', () => {
 			logger.info(`get ${payload.filename} in ${bucketName}`);
-			resolve(payload)
-		}).createReadStream().pipe(fs.createWriteStream(payload.filename));
+
+			return resolve(payload)
+		})
+		.on('error', function (error) {
+			logger.error(`${error.name}: ${error.message}`)
+			return reject(err)
+		})
+		.pipe(file);
 	});
 }
 
