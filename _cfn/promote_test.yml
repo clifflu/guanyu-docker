@@ -292,7 +292,7 @@ Resources:
           - Effect: Allow
             Action:
               - cloudformation:UpdateStack
-            Resource: !Ref 'AWS::StackName'
+            Resource: !Ref 'AWS::StackId'
     Metadata:
       cfn_nag:
         rules_to_suppress:
