@@ -263,3 +263,38 @@ Resources:
             - !ImportValue
                 'Fn::Sub': '${StackName}:PublicSubnet2'
       TaskDefinition: !Ref SophosavTaskDefinition
+  # Policy
+  ManagedPolicyForGuanyuCDUser:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Users:
+        - !ImportValue
+            'Fn::Sub': '${StackName}:GuanyuCDUser'
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - ecs:DeregisterTaskDefinition
+              - ecs:RegisterTaskDefinition
+            Resource:
+              - !Ref WebTaskDefinition
+              - !Ref FetchTaskDefinition
+              - !Ref SophosavTaskDefinition
+          - Effect: Allow
+            Action:
+              - ecs:UpdateService
+              - ecs:DescribeServices
+            Resource:
+              - !Ref WebService
+              - !Ref FetchService
+              - !Ref SophosavService
+          - Effect: Allow
+            Action:
+              - cloudformation:UpdateStack
+            Resource: !Ref 'AWS::StackName'
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: F12
+            reason: no group
