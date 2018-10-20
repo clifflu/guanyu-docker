@@ -65,6 +65,16 @@ Resources:
             Resource: '*'
           - Effect: Allow
             Action:
+              - ecs:DeregisterTaskDefinition
+              - ecs:RegisterTaskDefinition
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - ecs:UpdateService
+              - ecs:DescribeServices
+            Resource: '*'
+          - Effect: Allow
+            Action:
               - iam:PassRole
             Resource:
               - !GetAtt GuanyuWebServiceRole.Arn
