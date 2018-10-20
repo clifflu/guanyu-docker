@@ -30,4 +30,4 @@ after_success:
   - sed -ri "s/WebImageTag-SHA/$SHA/" ./_cfn/config.json
   - sed -ri "s/FetchImageTag-SHA/$SHA/" ./_cfn/config.json
   - sed -ri "s/SophosavImageTag-SHA/$SHA/" ./_cfn/config.json
-  - aws cloudformation update-stack --stack-name GuanyuPromoteTestStack --use-previous-template --parameters file://./_cfn/config.json
+  - aws cloudformation update-stack --stack-name GuanyuPromoteTestStack --use-previous-template --capabilities CAPABILITY_IAM --parameters file://./_cfn/config.json
