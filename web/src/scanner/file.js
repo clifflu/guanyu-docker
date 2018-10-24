@@ -5,7 +5,7 @@ const { aws, config, cache, prepareLogger, queue } = require('guanyu-core');
 const extend = require('extend');
 const fs = require('fs');
 const hash = require("../hash");
-const polling = require("../polling");
+const { polling } = require("../polling");
 const s3 = new aws.S3();
 const bucket = config.get('STACK:SAMPLE_BUCKET');
 
@@ -13,7 +13,12 @@ function upload_file(payload) {
   const logger = prepareLogger({ loc: `${logFn}:uploadFile` });
 
   if (payload.result) {
-    logger.debug("Skip fetching file for result already known");
+    logger.debug("Skip upload file for result already known");
+    return Promise.resolve(payload);
+  }
+
+  if (payload.cached) {
+    logger.debug("Skip upload file for sophosav scanning");
     return Promise.resolve(payload);
   }
 
@@ -60,24 +65,18 @@ function upload_file(payload) {
 
 function delete_file(payload) {
   let logger = prepareLogger({ loc: `${logFn}:delete_file` });
-
-  if (payload.result) {
-    logger.debug("Skip send message for result already known or error.");
-    return Promise.resolve(payload);
-  }
-
-  logger.debug();
+  logger.debug(`Try to delete file "${payload.file}"`);
 
   s3.deleteObject({
     Bucket: bucket,
     Key: payload.filename
   }, (err, data) => {
     if (err) {
-      logger.error(`Failed delete file "${payload.filename}" in "${bucket}"`, err);
+      logger.error(`Failed to delete file "${payload.filename}" in "${bucket}"`, err);
       return Promise.resolve(payload);
     }
 
-    logger.debug(`Delete file "${payload.filename}" in "${bucket}"`, data);
+    logger.debug(`Success to delete file "${payload.filename}" in "${bucket}"`, data);
   });
 
   return Promise.resolve(payload);
@@ -96,8 +95,8 @@ function scan_file(filename, options) {
     .then(upload_file)
     .then(queue.send_message)
     .catch(delete_file)
-    .then(cache.update_result_ddb)
-    .then(polling.get_result);
+    .then(cache.update_result)
+    .then(polling);
 }
 
 module.exports = {

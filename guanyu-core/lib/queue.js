@@ -8,7 +8,12 @@ function send_message(payload) {
 
   if (payload.result) {
     logger.debug("Skip send message for result already known or error.");
-    return Promise.reject(payload);
+    return Promise.resolve(payload);
+  }
+
+  if (payload.cached) {
+    logger.debug("Skip send message for sophosav scanning");
+    return Promise.resolve(payload);
   }
 
   let queue_url = payload.queue_url;
