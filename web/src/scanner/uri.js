@@ -6,7 +6,7 @@ const url = require('url');
 const logFn = "web:src/scanner/url";
 const { config, cache, prepareLogger, queue } = require('guanyu-core');
 const myhash = require("../hash");
-const polling = require("../polling");
+const { polling } = require("../polling");
 
 const host_whitelist = [
   '104.com.tw',
@@ -100,6 +100,11 @@ function _fetch_uri(payload) {
     return Promise.resolve(payload);
   }
 
+  if (payload.cache) {
+    logger.debug("Skip fetching uri for sophosav scanning");
+    return Promise.resolve(payload);
+  }
+
   if (!/^https?:\/\/.+/.test(payload.resource)) {
     logger.warn(`Unsupported uri: ${payload.resource}`);
     return Promise.reject(extend({}, payload, {
@@ -123,8 +128,8 @@ function scan_uri(uri, options) {
     .then(shortcut_host_whitelist)
     .then(cache.get_result)
     .then(fetch_uri)
-    .then(cache.update_result_ddb)
-    .then(polling.get_result);
+    .then(cache.update_result)
+    .then(polling);
 }
 
 module.exports = {
