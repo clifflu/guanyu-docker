@@ -38,6 +38,7 @@ function fulfilled(promise) {
 
 function check_text(payload) {
   const logger = prepareLogger({ loc: `${logFn}:checkText` });
+  let linkResults = {};
 
   if (payload.result) {
     logger.debug("Skip checking text");
@@ -47,12 +48,14 @@ function check_text(payload) {
   return new Promise((fulfill, reject) => {
     let links = payload.resource.match(urlRegex) || [];
     let scanner_promises = [];
+    let isEnd = true;
 
     logger.debug(`Found links in text: ${links}`);
     payload.resource = links;
 
     for (let idx = 0, len = links.length; idx < len; idx++) {
       let link = fix_uri(links[idx]);
+      linkResults[link] = undefined;
       scanner_promises.push(fulfilled(uri_scanner.scan_uri(link, payload.options)));
     }
 
@@ -66,11 +69,24 @@ function check_text(payload) {
         let v = values[idx];
 
         payload.malicious = payload.malicious || (!!v.malicious);
-        payload.result[v.resource] = v.result
+        linkResults[v.resource] = v.result;
       }
+      payload.result = linkResults;
+
+      for (var key in linkResults) {
+        if (linkResults.hasOwnProperty(key) && !linkResults[key]) {
+          isEnd = false;
+        }
+      }
+
       logger.debug(`Text scan result: ${payload}`);
+
+      if (!isEnd) {
+        return reject(payload);
+      }
+
       fulfill(payload);
-    }, reject)
+    }, reject);
   });
 }
 
@@ -78,7 +94,7 @@ function scan_text(text, options) {
   return myhash.from_string(text, options)
     .then(cache.get_result)
     .then(check_text)
-    .then(cache.update_result_ddb);
+    .then(cache.update_result);
 }
 
 module.exports = {
