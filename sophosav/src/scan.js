@@ -157,7 +157,7 @@ function get_file_with_S3(payload) {
 		})
 		.on('error', function (error) {
 			logger.error(`${error.name}: ${error.message}`)
-			return reject(err)
+			return reject(error)
 		})
 		.pipe(file);
 	});
