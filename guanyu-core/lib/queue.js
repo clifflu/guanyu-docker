@@ -22,9 +22,14 @@ function send_message(payload) {
 
   if (!sqs) {
     logger.error("Failed create sqs.");
-    return Promise.reject(extend({}, payload, {
-      message: "Failed create sqs."
-    }));
+
+    if (payload.filename) {
+      extend(payload, {
+        deletefile: true
+      })
+    }
+
+    return Promise.reject(payload);
   }
 
   logger.debug(`Try send message to "${queue_url}"`);
@@ -36,9 +41,12 @@ function send_message(payload) {
     return Promise.resolve(payload);
   }, err => {
     logger.error(`Failed send message to "${queue_url}"`, err);
-    return Promise.reject(extend({}, payload, {
-      message: "Failed send message to fetch queue."
-    }));
+    if (payload.filename) {
+      extend(payload, {
+        deletefile: true
+      })
+    }
+    return Promise.reject(payload);
   });
 }
 

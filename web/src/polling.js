@@ -8,7 +8,7 @@ function polling(payload) {
   let pullID;
   let timerID;
 
-  if (payload.result && payload.cached) {
+  if (payload.result) {
     return Promise.resolve(payload);
   }
 

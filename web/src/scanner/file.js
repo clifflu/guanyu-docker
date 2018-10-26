@@ -23,9 +23,7 @@ function upload_file(payload) {
   }
 
   if (!s3) {
-    return Promise.reject(extend({}, payload, {
-      result: "Failed create s3."
-    }));
+    return Promise.reject(payload);
   }
 
   logger.debug(`Try put object to bucket: "${bucket}"`);
@@ -34,9 +32,7 @@ function upload_file(payload) {
     fs.readFile(payload.filename, (err, data) => {
       if (err) {
         logger.error(`Failed read file from "${payload.filename}"`, err)
-        return reject(extend({}, payload, {
-          result: `Failed read file from "${payload.filename}"`
-        }));
+        return reject(payload);
       }
 
       let base64data = new Buffer.from(data, 'binary');
@@ -55,9 +51,7 @@ function upload_file(payload) {
         resolve(payload);
       }, err => {
         logger.error(`Failed put file "${payload.filename}" to "${bucket}"`, err);
-        reject(extend({}, payload, {
-          result: `Failed put file "${payload.filename}" to "${bucket}"`
-        }));
+        reject(payload);
       });
     });
   });
@@ -65,21 +59,27 @@ function upload_file(payload) {
 
 function delete_file(payload) {
   let logger = prepareLogger({ loc: `${logFn}:delete_file` });
-  logger.debug(`Try to delete file "${payload.file}"`);
 
+  if (!payload.deletefile) {
+    logger.debug("Skip delete file for file be not put to s3");
+    return Promise.reject(payload);
+  }
+
+  logger.debug(`Try to delete file "${payload.filename}"`);
+
+  delete payload.deletefile;
   s3.deleteObject({
     Bucket: bucket,
     Key: payload.filename
   }, (err, data) => {
     if (err) {
       logger.error(`Failed to delete file "${payload.filename}" in "${bucket}"`, err);
-      return Promise.resolve(payload);
+    } else {
+      logger.debug(`Success to delete file "${payload.filename}" in "${bucket}"`, data);
     }
-
-    logger.debug(`Success to delete file "${payload.filename}" in "${bucket}"`, data);
   });
 
-  return Promise.resolve(payload);
+  return Promise.reject(payload);
 }
 
 /**
