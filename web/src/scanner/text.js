@@ -4,7 +4,7 @@ const extend = require('extend');
 
 const logFn = "web:src/scanner/text";
 const { cache, prepareLogger } = require('guanyu-core');
-const myhash = require("../hash");
+const hash = require("../hash");
 const uri_scanner = require('./uri');
 
 const urlRegex = /((https?:\/\/(?:(?:[a-zA-Z0-9\$\-\_\.\+\!\*\'\(\)\,\;\?\&\=]|(?:\%[a-fA-F0-9]{2})){1,64}(?:\:(?:[a-zA-Z0-9\$\-\_\.\+\!\*\'\(\)\,\;\?\&\=]|(?:\%[a-fA-F0-9]{2})){1,25})?\@)?)?((?:(?:[a-zA-Z0-9][a-zA-Z0-9\-]{0,64}\.)+(?:(?:aero|arpa|asia|a[cdefgilmnoqrstuwxz])|(?:biz|b[abdefghijmnorstvwyz])|(?:cat|com|coop|c[acdfghiklmnoruvxyz])|d[ejkmoz]|(?:edu|e[cegrstu])|f[ijkmor]|(?:gov|g[abdefghilmnpqrstuwy])|h[kmnrtu]|(?:info|int|i[delmnoqrst])|(?:jobs|j[emop])|k[eghimnrwyz]|l[abcikrstuvy]|(?:mil|mobi|museum|m[acdghklmnopqrstuvwxyz])|(?:name|net|n[acefgilopruz])|(?:org|om)|(?:pro|p[aefghklmnrstwy])|qa|r[eouw]|s[abcdeghijklmnortuvyz]|(?:tel|travel|t[cdfghjklmnoprtvwz])|u[agkmsyz]|v[aceginu]|w[fs]|y[etu]|z[amw]))|(?:(?:25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}|[1-9][0-9]|[1-9])\.(?:25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}|[1-9][0-9]|[1-9]|0)\.(?:25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}|[1-9][0-9]|[1-9]|0)\.(?:25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}|[1-9][0-9]|[0-9])))(?:\:\d{1,5})?)(\/(?:(?:[a-zA-Z0-9\;\/\?\:\@\&\=\#\~\-\.\+\!\*\'\(\)\,\_])|(?:\%[a-fA-F0-9]{2}))*)?(?:\b|$)/gi;
@@ -38,6 +38,7 @@ function fulfilled(promise) {
 
 function check_text(payload) {
   const logger = prepareLogger({ loc: `${logFn}:checkText` });
+  let linkResults = {};
 
   if (payload.result) {
     logger.debug("Skip checking text");
@@ -47,12 +48,14 @@ function check_text(payload) {
   return new Promise((fulfill, reject) => {
     let links = payload.resource.match(urlRegex) || [];
     let scanner_promises = [];
+    let isEnd = true;
 
     logger.debug(`Found links in text: ${links}`);
     payload.resource = links;
 
     for (let idx = 0, len = links.length; idx < len; idx++) {
       let link = fix_uri(links[idx]);
+      linkResults[link] = undefined;
       scanner_promises.push(fulfilled(uri_scanner.scan_uri(link, payload.options)));
     }
 
@@ -66,19 +69,32 @@ function check_text(payload) {
         let v = values[idx];
 
         payload.malicious = payload.malicious || (!!v.malicious);
-        payload.result[v.resource] = v.result
+        linkResults[v.resource] = v.result;
       }
+      payload.result = linkResults;
+
+      for (var key in linkResults) {
+        if (linkResults.hasOwnProperty(key) && !linkResults[key]) {
+          isEnd = false;
+        }
+      }
+
       logger.debug(`Text scan result: ${payload}`);
+
+      if (!isEnd) {
+        return reject(payload);
+      }
+
       fulfill(payload);
-    }, reject)
+    }, reject);
   });
 }
 
 function scan_text(text, options) {
-  return myhash.from_string(text, options)
+  return hash.from_string(text, options)
     .then(cache.get_result)
     .then(check_text)
-    .then(cache.update_result_ddb);
+    .then(cache.update_result);
 }
 
 module.exports = {

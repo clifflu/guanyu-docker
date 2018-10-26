@@ -5,8 +5,8 @@ const url = require('url');
 
 const logFn = "web:src/scanner/url";
 const { config, cache, prepareLogger, queue } = require('guanyu-core');
-const myhash = require("../hash");
-const polling = require("../polling");
+const hash = require("../hash");
+const { polling } = require("../polling");
 
 const host_whitelist = [
   '104.com.tw',
@@ -61,51 +61,17 @@ function shortcut_host_whitelist(payload) {
   return Promise.resolve(payload);
 }
 
-/**
- * Wraps _fetch_uri and handle fall_with_upstream
- *
- * @param payload
- * @returns {Promise}
- */
-function fetch_uri(payload) {
-  let fall_with_upstream = payload.options && payload.options.fall_with_upstream;
-
-  if (fall_with_upstream)
-    return _fetch_uri(payload);
-
-  return _fetch_uri(payload).catch(payload => {
-    extend(payload, {
-      malicious: false,
-      result: `#${payload.message}`,
-    });
-
-    delete payload.error;
-    delete payload.status;
-    delete payload.message;
-    return Promise.resolve(payload);
-  });
-}
-
-/**
- *
- * @param payload
- * @returns {Promise}
- * @private
- */
-function _fetch_uri(payload) {
-  const logger = prepareLogger({ loc: `${logFn}:_fetchUri` });
+function send_fetch_request(payload) {
+  const logger = prepareLogger({ loc: `${logFn}:sendQueue` });
 
   if (payload.result) {
     logger.debug("Skip fetching uri for result already known");
     return Promise.resolve(payload);
   }
 
-  if (!/^https?:\/\/.+/.test(payload.resource)) {
-    logger.warn(`Unsupported uri: ${payload.resource}`);
-    return Promise.reject(extend({}, payload, {
-      status: 400,
-      message: `Unsupported uri: ${payload.resource}`
-    }));
+  if (payload.cache) {
+    logger.debug("Skip fetching uri for sophosav scanning");
+    return Promise.resolve(payload);
   }
 
   return queue.send_message(extend({}, payload, {
@@ -119,12 +85,12 @@ function _fetch_uri(payload) {
  * @returns {*}
  */
 function scan_uri(uri, options) {
-  return myhash.from_string(uri, options)
+  return hash.from_string(uri, options)
     .then(shortcut_host_whitelist)
     .then(cache.get_result)
-    .then(fetch_uri)
-    .then(cache.update_result_ddb)
-    .then(polling.get_result);
+    .then(send_fetch_request)
+    .then(cache.update_result)
+    .then(polling);
 }
 
 module.exports = {

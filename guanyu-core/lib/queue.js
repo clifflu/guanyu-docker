@@ -8,7 +8,12 @@ function send_message(payload) {
 
   if (payload.result) {
     logger.debug("Skip send message for result already known or error.");
-    return Promise.reject(payload);
+    return Promise.resolve(payload);
+  }
+
+  if (payload.cached) {
+    logger.debug("Skip send message for sophosav scanning");
+    return Promise.resolve(payload);
   }
 
   let queue_url = payload.queue_url;
@@ -17,9 +22,14 @@ function send_message(payload) {
 
   if (!sqs) {
     logger.error("Failed create sqs.");
-    return Promise.reject(extend({}, payload, {
-      message: "Failed create sqs."
-    }));
+
+    if (payload.filename) {
+      extend(payload, {
+        deletefile: true
+      })
+    }
+
+    return Promise.reject(payload);
   }
 
   logger.debug(`Try send message to "${queue_url}"`);
@@ -31,9 +41,12 @@ function send_message(payload) {
     return Promise.resolve(payload);
   }, err => {
     logger.error(`Failed send message to "${queue_url}"`, err);
-    return Promise.reject(extend({}, payload, {
-      message: "Failed send message to fetch queue."
-    }));
+    if (payload.filename) {
+      extend(payload, {
+        deletefile: true
+      })
+    }
+    return Promise.reject(payload);
   });
 }
 

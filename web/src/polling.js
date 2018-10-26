@@ -1,46 +1,75 @@
-const extend = require("extend");
-const { config, cache, prepareLogger } = require('guanyu-core');
+const { cache, prepareLogger } = require('guanyu-core');
+const httperror = require('./httperror');
 const logFn = "web:src/polling";
 
-let pullID;
-let timerID;
+function polling(payload) {
+  const logger = prepareLogger({ loc: `${logFn}:polling` });
+  let time = [0, 1];
+  let pullID;
+  let timerID;
 
-function end() {
-  const logger = prepareLogger({ loc: `${logFn}:end` });
-  logger.debug("polling stop");
-  pullID = pullID && clearInterval(pullID);
-  timerID = timerID && clearTimeout(timerID);
-}
-
-function checkResult(resolve, reject) {
-  const logger = prepareLogger({ loc: `${logFn}:checkResult` });
-  return (payload) => {
-    logger.debug("check payload", payload);
-    if (payload.status || payload.result) {
-      end();
-      cache.update_result_naive(payload).then(() => {
-        if (payload.status) {
-          return reject(payload);
-        }
-        resolve(payload);
-      });
-    }
+  if (payload.result) {
+    return Promise.resolve(payload);
   }
-}
 
-function get_result(payload) {
-  const logger = prepareLogger({ loc: `${logFn}:get_result` });
-  return new Promise((resolve, reject) => {
-    timeerID = setTimeout(() => {
-      end();
-      reject(payload);
-    }, 30 * 1000);
+  function end() {
+    pullID = pullID && clearInterval(pullID);
+    timerID = timerID && clearTimeout(timerID);
+  };
+
+  function checkResult() {
+    return (payload) => {
+      if (payload.status || payload.result) {
+        end();
+        logger.debug("Polling stop");
+        cache.update_result_naive(payload).then(() => {
+          if (payload.status) {
+            return this.reject(payload);
+          }
+          return this.resolve(payload);
+        });
+      }
+      if (timerID) {
+        clearInterval(pullID);
+        startInterval();
+      }
+    }
+  };
+
+  function setEndMethod(resolve, reject) {
+    this.resolve = resolve;
+    this.reject = reject;
+  }
+
+  function startInterval() {
     pullID = setInterval(() => {
-      cache.get_result_ddb(payload).then(checkResult(resolve, reject));
-    }, 1000);
+      cache.get_result_ddb(payload).then(checkResult());
+    }, getIntervalTime() * 1000);
+  }
+
+  function getIntervalTime() {
+    let intervalTime = time[0] + time[1];
+
+    if (intervalTime < 5) {
+      time[0] = time[1];
+      time[1] = intervalTime;
+    }
+
+    return intervalTime;
+  }
+
+  logger.debug("Polling start...");
+  return new Promise((resolve, reject) => {
+    setEndMethod(resolve, reject);
+    timerID = setTimeout(() => {
+      end();
+      logger.debug("Polling timeout");
+      reject(httperror.GATEWAY_TIMEOUT);
+    }, (payload.responseTime || 60) * 1000);
+    startInterval();
   });
 }
 
 module.exports = {
-  get_result: get_result
+  polling: polling
 }
