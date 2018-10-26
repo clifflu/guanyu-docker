@@ -1,4 +1,5 @@
 const { cache, prepareLogger } = require('guanyu-core');
+const httperror = require('./httperror');
 const logFn = "web:src/polling";
 
 function polling(payload) {
@@ -63,7 +64,7 @@ function polling(payload) {
     timerID = setTimeout(() => {
       end();
       logger.debug("Polling timeout");
-      reject(payload);
+      reject(httperror.GATEWAY_TIMEOUT);
     }, (payload.responseTime || 60) * 1000);
     startInterval();
   });
