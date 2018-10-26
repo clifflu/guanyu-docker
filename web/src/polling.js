@@ -22,6 +22,10 @@ function polling(payload) {
       if (payload.status || payload.result) {
         end();
         logger.debug("Polling stop");
+        if (payload.noncached) {
+          delete payload.cached;
+          delete payload.noncached;
+        }
         cache.update_result_naive(payload).then(() => {
           if (payload.status) {
             return this.reject(payload);
