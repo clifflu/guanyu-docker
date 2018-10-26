@@ -4,7 +4,7 @@ const { prepareLogger } = require('guanyu-core');
 function handle_err(response) {
   const logger = prepareLogger({ loc: `${logFn}:handleErr` });
   return (err) => {
-    logger.warn(err);
+    logger.warn("Server error", err);
     response.status(err.status || 500).render("error", {
       message: err.message || "Oops, something bad happened.",
       error: err

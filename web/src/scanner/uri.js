@@ -5,7 +5,7 @@ const url = require('url');
 
 const logFn = "web:src/scanner/url";
 const { config, cache, prepareLogger, queue } = require('guanyu-core');
-const myhash = require("../hash");
+const hash = require("../hash");
 const { polling } = require("../polling");
 
 const host_whitelist = [
@@ -61,7 +61,7 @@ function shortcut_host_whitelist(payload) {
   return Promise.resolve(payload);
 }
 
-function send_queue(payload) {
+function send_fetch_request(payload) {
   const logger = prepareLogger({ loc: `${logFn}:sendQueue` });
 
   if (payload.result) {
@@ -85,10 +85,10 @@ function send_queue(payload) {
  * @returns {*}
  */
 function scan_uri(uri, options) {
-  return myhash.from_string(uri, options)
+  return hash.from_string(uri, options)
     .then(shortcut_host_whitelist)
     .then(cache.get_result)
-    .then(send_queue)
+    .then(send_fetch_request)
     .then(cache.update_result)
     .then(polling);
 }
